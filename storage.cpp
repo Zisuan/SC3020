@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <iomanip>
 
 const int BLOCK_SIZE = 200;
 const size_t DISK_CAPACITY = 100 * 1024 * 1024;
@@ -44,6 +45,15 @@ float convertToFloat(const std::string &str, const std::string &fullLine)
         std::cerr << "Out of range: '" << str << "' in line: " << fullLine << " is out of range for a float." << std::endl;
         return 0.0f;
     }
+}
+
+void printHeader(const std::string& title) {
+    std::cout << "\n" << title << "\n";
+    std::cout << std::string(title.length(), '=') << "\n";
+}
+
+void printKeyValue(const std::string& key, const std::string& value) {
+    std::cout << std::left << std::setw(30) << key << ": " << value << "\n";
 }
 
 struct Record
@@ -209,19 +219,25 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
     tsvFile.close();
 }
 
-int main()
-{
+int main() {
     SimulatedDisk disk(DISK_CAPACITY); // Initialize the simulated disk
     readTSVAndCreateBlocks("Data/data.tsv", disk);
     disk.writeToDisk("Data.dat");
 
-    std::cout << "Total number of records: " << disk.totalRecords() << std::endl;
-    std::cout << "Size of a record: " << sizeof(Record) << " bytes" << std::endl;
-    std::cout << "Number of records stored in a block: " << BLOCK_SIZE / sizeof(Record) << std::endl;
-    std::cout << "Number of blocks for storing the data: " << disk.totalBlocks() << std::endl;
-    std::cout << "Used disk capacity: " << disk.usedCapacity() << " bytes" << std::endl;
-    std::cout << "Total disk capacity: " << DISK_CAPACITY << " bytes" << std::endl;
-    std::cout << "Free disk capacity: " << (DISK_CAPACITY - disk.usedCapacity()) << " bytes" << std::endl;
+    // Output formatting functions for display
+    printHeader("Processing Summary");
+    printKeyValue("Total lines processed", std::to_string(disk.totalRecords()));
+    printKeyValue("Total number of records", std::to_string(disk.totalRecords()));
+
+    printHeader("Record Information");
+    printKeyValue("Size of a record", std::to_string(sizeof(Record)) + " bytes");
+    printKeyValue("Number of records stored in a block", std::to_string(BLOCK_SIZE / sizeof(Record)));
+
+    printHeader("Disk Usage");
+    printKeyValue("Number of blocks for storing the data", std::to_string(disk.totalBlocks()));
+    printKeyValue("Used disk capacity", std::to_string(disk.usedCapacity()) + " bytes");
+    printKeyValue("Total disk capacity", std::to_string(DISK_CAPACITY) + " bytes");
+    printKeyValue("Free disk capacity", std::to_string(DISK_CAPACITY - disk.usedCapacity()) + " bytes");
 
     return 0;
 }
