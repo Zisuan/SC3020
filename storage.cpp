@@ -162,6 +162,7 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
     std::ifstream tsvFile(filename);
     std::string line;
     Block currentBlock;
+    size_t lineNumber = 0;      //Line counter for debugging purpose
 
     if (!std::getline(tsvFile, line))
     {
@@ -171,6 +172,11 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
 
     while (std::getline(tsvFile, line))
     {
+        lineNumber++;
+        if (lineNumber % 10000 == 0) { //Print a message every 10000 lines
+            std::cout << "Processing line: " << lineNumber << std::endl;
+        }
+
         std::istringstream iss(line);
         std::string tconst, rating, votes;
 
@@ -185,6 +191,7 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
 
         if (!currentBlock.canAddRecord())
         {
+            std::cout << "Adding block to disk after " << currentBlock.size() << "records. Total processed lines: " << lineNumber << std::endl;
             disk.addBlock(currentBlock); // Add the current block to the disk
             currentBlock = Block();      // Start a new block
         }
@@ -193,8 +200,11 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
 
     if (currentBlock.size() > 0)
     {
+        std::cout << "Adding final block to disk. Total lines processed: " << lineNumber << std::endl;
         disk.addBlock(currentBlock); // Don't forget to add the last block
     }
+
+    std::cout << "Finished processing. Total lines read: " << lineNumber << std::endl;
 
     tsvFile.close();
 }
