@@ -1,12 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <cstring>
-#include <cstdint>
-#include <string>
-#include <sstream>
-#include <algorithm>
-#include <iomanip>
+#include "Storage.h"
 
 const int BLOCK_SIZE = 200;
 const size_t DISK_CAPACITY = 100 * 1024 * 1024;
@@ -47,12 +39,15 @@ float convertToFloat(const std::string &str, const std::string &fullLine)
     }
 }
 
-void printHeader(const std::string& title) {
-    std::cout << "\n" << title << "\n";
+void printHeader(const std::string &title)
+{
+    std::cout << "\n"
+              << title << "\n";
     std::cout << std::string(title.length(), '=') << "\n";
 }
 
-void printKeyValue(const std::string& key, const std::string& value) {
+void printKeyValue(const std::string &key, const std::string &value)
+{
     std::cout << std::left << std::setw(30) << key << ": " << value << "\n";
 }
 
@@ -172,7 +167,7 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
     std::ifstream tsvFile(filename);
     std::string line;
     Block currentBlock;
-    size_t lineNumber = 0;      //Line counter for debugging purpose
+    size_t lineNumber = 0; // Line counter for debugging purpose
 
     if (!std::getline(tsvFile, line))
     {
@@ -183,7 +178,8 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
     while (std::getline(tsvFile, line))
     {
         lineNumber++;
-        if (lineNumber % 10000 == 0) { //Print a message every 10000 lines
+        if (lineNumber % 10000 == 0)
+        { // Print a message every 10000 lines
             std::cout << "Processing line: " << lineNumber << std::endl;
         }
 
@@ -219,7 +215,8 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
     tsvFile.close();
 }
 
-int main() {
+int main()
+{
     SimulatedDisk disk(DISK_CAPACITY); // Initialize the simulated disk
     readTSVAndCreateBlocks("Data/data.tsv", disk);
     disk.writeToDisk("Data.dat");

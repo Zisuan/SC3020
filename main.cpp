@@ -9,9 +9,11 @@
 #include "storage.h" // Include the header file for storage-related functions
 
 // Function to load data into the B+ tree from a TSV file
-void loadData(BPTree& bptree, const std::string& filepath) {
+void loadData(BPTree &bptree, const std::string &filepath)
+{
     std::ifstream file(filepath);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "Failed to open file: " << filepath << std::endl;
         return;
     }
@@ -19,7 +21,8 @@ void loadData(BPTree& bptree, const std::string& filepath) {
     std::string line;
     std::getline(file, line); // Skip header line
 
-    while (std::getline(file, line)) {
+    while (std::getline(file, line))
+    {
         std::istringstream iss(line);
         std::string tconst, averageRating, numVotesStr;
         std::getline(iss, tconst, '\t');
@@ -36,14 +39,36 @@ void loadData(BPTree& bptree, const std::string& filepath) {
 }
 
 // Utility function to print experiment header
-void printExperimentHeader(const std::string& title) {
-    std::cout << "\n" << title << "\n";
+void printExperimentHeader(const std::string &title)
+{
+    std::cout << "\n"
+              << title << "\n";
     std::cout << std::string(title.length(), '=') << "\n";
 }
 
 // Experiment 1: Storage Statistics
-void experiment1(const BPTree& bptree) {
+void experiment1(const BPTree &bptree)
+{
     printExperimentHeader("Experiment 1: Storage Statistics");
+
+    SimulatedDisk disk(DISK_CAPACITY); // Initialize the simulated disk
+    readTSVAndCreateBlocks("Data/data.tsv", disk);
+    disk.writeToDisk("Data.dat");
+
+    // Output formatting functions for display
+    printHeader("Processing Summary");
+    printKeyValue("Total lines processed", std::to_string(disk.totalRecords()));
+    printKeyValue("Total number of records", std::to_string(disk.totalRecords()));
+
+    printHeader("Record Information");
+    printKeyValue("Size of a record", std::to_string(sizeof(Record)) + " bytes");
+    printKeyValue("Number of records stored in a block", std::to_string(BLOCK_SIZE / sizeof(Record)));
+
+    printHeader("Disk Usage");
+    printKeyValue("Number of blocks for storing the data", std::to_string(disk.totalBlocks()));
+    printKeyValue("Used disk capacity", std::to_string(disk.usedCapacity()) + " bytes");
+    printKeyValue("Total disk capacity", std::to_string(DISK_CAPACITY) + " bytes");
+    printKeyValue("Free disk capacity", std::to_string(DISK_CAPACITY - disk.usedCapacity()) + " bytes");
 
     // Assuming each leaf node is a block, and the size of a record is the size of the Record structure
     int recordSize = sizeof(Record);
@@ -62,7 +87,8 @@ void experiment1(const BPTree& bptree) {
 }
 
 // Experiment 2: B+ Tree Statistics
-void experiment2(const BPTree& bptree) {
+void experiment2(const BPTree &bptree)
+{
     printExperimentHeader("Experiment 2: B+ Tree Statistics");
 
     // You need to implement these methods in your BPTree class
@@ -75,14 +101,16 @@ void experiment2(const BPTree& bptree) {
     std::cout << "Total Nodes: " << totalNodes << std::endl;
     std::cout << "Tree Levels: " << treeLevels << std::endl;
     std::cout << "Root Content: ";
-    for (const auto& key : rootContent) {
+    for (const auto &key : rootContent)
+    {
         std::cout << key << " ";
     }
     std::cout << std::endl;
 }
 
 // Experiment 3: Query for numVotes = 500
-void experiment3(BPTree& bptree) {
+void experiment3(BPTree &bptree)
+{
     printExperimentHeader("Experiment 3: Query for numVotes = 500");
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -93,10 +121,12 @@ void experiment3(BPTree& bptree) {
     std::chrono::duration<double, std::milli> elapsed = end - start;
 
     float averageRating = 0;
-    for (const auto& record : results) {
+    for (const auto &record : results)
+    {
         averageRating += record->averageRating;
     }
-    if (!results.empty()) {
+    if (!results.empty())
+    {
         averageRating /= results.size();
     }
 
@@ -106,7 +136,8 @@ void experiment3(BPTree& bptree) {
 }
 
 // Experiment 4: Range Query for numVotes between 30,000 and 40,000
-void experiment4(BPTree& bptree) {
+void experiment4(BPTree &bptree)
+{
     printExperimentHeader("Experiment 4: Range Query for numVotes between 30,000 and 40,000");
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -117,10 +148,12 @@ void experiment4(BPTree& bptree) {
     std::chrono::duration<double, std::milli> elapsed = end - start;
 
     float averageRating = 0;
-    for (const auto& record : results) {
+    for (const auto &record : results)
+    {
         averageRating += record->averageRating;
     }
-    if (!results.empty()) {
+    if (!results.empty())
+    {
         averageRating /= results.size();
     }
 
@@ -130,7 +163,8 @@ void experiment4(BPTree& bptree) {
 }
 
 // Experiment 5: Deletion of records with numVotes = 1,000
-void experiment5(BPTree& bptree) {
+void experiment5(BPTree &bptree)
+{
     printExperimentHeader("Experiment 5: Deletion of records with numVotes = 1,000");
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -147,21 +181,24 @@ void experiment5(BPTree& bptree) {
     std::cout << "Total Nodes After Deletion: " << totalNodes << std::endl;
     std::cout << "Tree Levels After Deletion: " << treeLevels << std::endl;
     std::cout << "Root Content After Deletion: ";
-    for (const auto& key : rootContent) {
+    for (const auto &key : rootContent)
+    {
         std::cout << key << " ";
     }
     std::cout << std::endl;
     std::cout << "Elapsed Time: " << elapsed.count() << " ms" << std::endl;
 }
 
-int main() {
+int main()
+{
     BPTree bptree(BLOCK_SIZE); // Initialize B+ tree with block size
 
     std::string filepath = "path/to/data.tsv";
     loadData(bptree, filepath); // Load data from TSV file into B+ tree
 
     int choice = 0;
-    do {
+    do
+    {
         std::cout << "\nSelect an experiment to run (1-5) or 0 to exit:\n";
         std::cout << "1. Experiment 1: Storage Statistics\n";
         std::cout << "2. Experiment 2: B+ Tree Statistics\n";
@@ -172,24 +209,25 @@ int main() {
         std::cout << "> ";
         std::cin >> choice;
 
-        switch (choice) {
-            case 1:
-                experiment1(bptree);
-                break;
-            case 2:
-                experiment2(bptree);
-                break;
-            case 3:
-                experiment3(bptree);
-                break;
-            case 4:
-                experiment4(bptree);
-                break;
-            case 5:
-                experiment5(bptree);
-                break;
-            default:
-                break;
+        switch (choice)
+        {
+        case 1:
+            experiment1(bptree);
+            break;
+        case 2:
+            experiment2(bptree);
+            break;
+        case 3:
+            experiment3(bptree);
+            break;
+        case 4:
+            experiment4(bptree);
+            break;
+        case 5:
+            experiment5(bptree);
+            break;
+        default:
+            break;
         }
     } while (choice != 0);
 
