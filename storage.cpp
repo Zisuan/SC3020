@@ -1,185 +1,118 @@
 #include "Storage.h"
 
+// If BLOCK_SIZE and DISK_CAPACITY are defined in another file and marked as 'extern' in Storage.h,
+// you don't need to define them again here unless this is the file where you want to set their values.
 const int BLOCK_SIZE = 200;
 const size_t DISK_CAPACITY = 100 * 1024 * 1024;
 
-int convertToInt(const std::string &str, const std::string &fullLine)
-{
-    try
-    {
+int convertToInt(const std::string &str, const std::string &fullLine) {
+    try {
         return std::stoi(str);
-    }
-    catch (const std::invalid_argument &e)
-    {
-        std::cerr << "Invalid argument: '" << str << "' in line: " << fullLine << " could not be converted to int." << std::endl;
+    } catch (const std::invalid_argument &e) {
+        std::cerr << "Invalid argument: '" << str << "' in line: " << fullLine << std::endl;
         return 0;
-    }
-    catch (const std::out_of_range &e)
-    {
-        std::cerr << "Out of range: '" << str << "' in line: " << fullLine << " is out of range for an int." << std::endl;
+    } catch (const std::out_of_range &e) {
+        std::cerr << "Out of range: '" << str << "' in line: " << fullLine << std::endl;
         return 0;
     }
 }
 
-float convertToFloat(const std::string &str, const std::string &fullLine)
-{
-    try
-    {
+float convertToFloat(const std::string &str, const std::string &fullLine) {
+    try {
         return std::stof(str);
-    }
-    catch (const std::invalid_argument &e)
-    {
-        std::cerr << "Invalid argument: '" << str << "' in line: " << fullLine << " could not be converted to float." << std::endl;
+    } catch (const std::invalid_argument &e) {
+        std::cerr << "Invalid argument: '" << str << "' in line: " << fullLine << std::endl;
         return 0.0f;
-    }
-    catch (const std::out_of_range &e)
-    {
-        std::cerr << "Out of range: '" << str << "' in line: " << fullLine << " is out of range for a float." << std::endl;
+    } catch (const std::out_of_range &e) {
+        std::cerr << "Out of range: '" << str << "' in line: " << fullLine << std::endl;
         return 0.0f;
     }
 }
 
-void printHeader(const std::string &title)
-{
-    std::cout << "\n"
-              << title << "\n";
-    std::cout << std::string(title.length(), '=') << "\n";
+void printHeader(const std::string &title) {
+    std::cout << "\n" << title << "\n" << std::string(title.length(), '=') << "\n";
 }
 
-void printKeyValue(const std::string &key, const std::string &value)
-{
+void printKeyValue(const std::string &key, const std::string &value) {
     std::cout << std::left << std::setw(30) << key << ": " << value << "\n";
 }
 
-struct Record
-{
-    char tconst[10];     // 9 chars for the ID + 1 for null terminator
-    float averageRating; // 4 bytes for the floating point
-    int32_t numVotes;    // 4 bytes for the integer
-
-    Record(const std::string &id, float rating, int32_t votes)
-    {
-        strncpy(tconst, id.c_str(), sizeof(tconst) - 1);
-        tconst[sizeof(tconst) - 1] = '\0'; // Ensure null-termination
-        averageRating = rating;            // Assume rating is already converted to float
-        numVotes = votes;                  // Assume votes is already an int
+void Block::writeToDisk(std::ofstream &out) const {
+    for (const Record &record : records) {
+        out.write(reinterpret_cast<const char *>(&record), sizeof(Record));
     }
-};
+}
 
-class Block
-{
-public:
-    std::vector<Record> records;
+bool Block::canAddRecord() const {
+    return records.size() < (BLOCK_SIZE / sizeof(Record));
+}
 
-    void writeToDisk(std::ofstream &out) const
-    {
-        for (const Record &record : records)
-        {
-            out.write(reinterpret_cast<const char *>(&record), sizeof(Record));
-        }
+void Block::addRecord(const Record &record) {
+    if (canAddRecord()) {
+        records.push_back(record);
     }
+}
 
-    bool canAddRecord() const
-    {
-        return records.size() < (BLOCK_SIZE / sizeof(Record));
+size_t Block::size() const {
+    return records.size();
+}
+
+SimulatedDisk::SimulatedDisk(size_t diskCapacity) : capacity(diskCapacity) {}
+
+bool SimulatedDisk::canAddBlock() const {
+    return (blocks.size() + 1) * BLOCK_SIZE <= capacity;
+}
+
+void SimulatedDisk::addBlock(const Block &block) {
+    if (canAddBlock()) {
+        blocks.push_back(block);
+    } else {
+        std::cerr << "Disk capacity exceeded, cannot add more blocks." << std::endl;
     }
+}
 
-    void addRecord(const Record &record)
-    {
-        if (canAddRecord())
-        {
-            records.push_back(record);
-        }
+void SimulatedDisk::writeToDisk(const std::string &filename) {
+    std::ofstream outFile(filename, std::ios::binary);
+    if (!outFile.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
     }
-
-    size_t size() const
-    {
-        return records.size();
+    for (const Block &block : blocks) {
+        block.writeToDisk(outFile);
     }
-};
+    outFile.close();
+}
 
-class SimulatedDisk
-{
-private:
-    std::vector<Block> blocks;
-    size_t capacity;
+size_t SimulatedDisk::totalBlocks() const {
+    return blocks.size();
+}
 
-public:
-    SimulatedDisk(size_t diskCapacity = DISK_CAPACITY) : capacity(diskCapacity) {}
-
-    bool canAddBlock() const
-    {
-        // Each block uses BLOCK_SIZE bytes, calculate if a new block can fit
-        return (blocks.size() + 1) * BLOCK_SIZE <= capacity;
+size_t SimulatedDisk::totalRecords() const {
+    size_t total = 0;
+    for (const Block &block : blocks) {
+        total += block.size();
     }
+    return total;
+}
 
-    void addBlock(const Block &block)
-    {
-        if (canAddBlock())
-        {
-            blocks.push_back(block);
-        }
-        else
-        {
-            std::cerr << "Disk capacity exceeded, cannot add more blocks." << std::endl;
-        }
-    }
+size_t SimulatedDisk::usedCapacity() const {
+    return blocks.size() * BLOCK_SIZE;
+}
 
-    void writeToDisk(const std::string &filename)
-    {
-        std::ofstream outFile(filename, std::ios::binary);
-        if (!outFile.is_open())
-        {
-            std::cerr << "Failed to open file for writing: " << filename << std::endl;
-            return;
-        }
-        for (const Block &block : blocks)
-        {
-            block.writeToDisk(outFile);
-        }
-        outFile.close();
-    }
-
-    size_t totalBlocks() const
-    {
-        return blocks.size();
-    }
-
-    size_t totalRecords() const
-    {
-        size_t total = 0;
-        for (const Block &block : blocks)
-        {
-            total += block.size();
-        }
-        return total;
-    }
-
-    size_t usedCapacity() const
-    {
-        return blocks.size() * BLOCK_SIZE;
-    }
-};
-
-void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
-{
-
+void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk) {
     std::ifstream tsvFile(filename);
     std::string line;
     Block currentBlock;
-    size_t lineNumber = 0; // Line counter for debugging purpose
+    size_t lineNumber = 0;
 
-    if (!std::getline(tsvFile, line))
-    {
+    if (!std::getline(tsvFile, line)) {
         std::cerr << "File is empty or cannot be read." << std::endl;
         return;
     }
 
-    while (std::getline(tsvFile, line))
-    {
+    while (std::getline(tsvFile, line)) {
         lineNumber++;
-        if (lineNumber % 10000 == 0)
-        { // Print a message every 10000 lines
+        if (lineNumber % 10000 == 0) {
             std::cout << "Processing line: " << lineNumber << std::endl;
         }
 
@@ -195,25 +128,22 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
 
         Record record(tconst, avgRating, numVotes);
 
-        if (!currentBlock.canAddRecord())
-        {
-            std::cout << "Adding block to disk after " << currentBlock.size() << "records. Total processed lines: " << lineNumber << std::endl;
-            disk.addBlock(currentBlock); // Add the current block to the disk
-            currentBlock = Block();      // Start a new block
+        if (!currentBlock.canAddRecord()) {
+            disk.addBlock(currentBlock);
+            currentBlock = Block();
         }
         currentBlock.addRecord(record);
     }
 
-    if (currentBlock.size() > 0)
-    {
-        std::cout << "Adding final block to disk. Total lines processed: " << lineNumber << std::endl;
-        disk.addBlock(currentBlock); // Don't forget to add the last block
+    if (currentBlock.size() > 0) {
+        disk.addBlock(currentBlock);
     }
 
     std::cout << "Finished processing. Total lines read: " << lineNumber << std::endl;
 
     tsvFile.close();
 }
+
 /*
 int main()
 {

@@ -75,30 +75,6 @@ void BPTree::splitLeafNode(std::shared_ptr<Node>& leaf) {
     leaf->next = newLeaf; // Link the original leaf with the new leaf
 }
 
-void BPTree::printTree() const {
-    printTree(root, 0);
-    std::cout << "---------------------------------\n";
-}
-
-void BPTree::printTree(std::shared_ptr<Node> node, int space) const {
-    if (node == nullptr) return;
-
-    int i;
-    for (i = node->keys.size() - 1; i >= 0; i--) {
-        if (!node->isLeaf) {
-            printTree(node->children[i + 1], space + 5);
-        }
-
-        for (int j = 0; j < space; j++) {
-            std::cout << ' ';
-        }
-        std::cout << node->keys[i] << "\n";
-    }
-    if (!node->isLeaf) {
-        printTree(node->children[0], space + 5);
-    }
-}
-
 void BPTree::insertInternal(float key, std::shared_ptr<Node> parent, std::shared_ptr<Node> child) {
     if (parent->keys.size() < maxKeys) { // Simple case: the parent has room for the new key
         auto it = std::lower_bound(parent->keys.begin(), parent->keys.end(), key);
@@ -396,4 +372,44 @@ int BPTree::countBlocks(std::shared_ptr<Node> node) const {
         }
     }
     return totalBlocks;
+}
+
+void BPTree::printTree() const {
+    std::cout << "B+ Tree Structure:" << std::endl;
+    printTree(root, 0);
+    std::cout << "---------------------------------\n";
+}
+
+void BPTree::printTree(std::shared_ptr<Node> node, int space) const {
+    if (node == nullptr) return;
+
+    int i;
+    for (i = node->keys.size() - 1; i >= 0; i--) {
+        if (!node->isLeaf) {
+            printTree(node->children[i + 1], space + 5);
+        }
+
+        for (int j = 0; j < space; j++) {
+            std::cout << ' ';
+        }
+        std::cout << node->keys[i] << "\n";
+    }
+    if (!node->isLeaf) {
+        printTree(node->children[0], space + 5);
+    }
+}
+
+// Call this function in Experiment 2 after building the B+ tree
+void BPTree::experiment2Statistics() const {
+    std::cout << "Experiment 2: B+ Tree Statistics" << std::endl;
+    std::cout << "Parameter n (max keys per node): " << maxKeys << std::endl;
+    std::cout << "Number of nodes in the B+ tree: " << getTotalNodes() << std::endl;
+    std::cout << "Number of levels in the B+ tree: " << getTreeLevels() << std::endl;
+    std::cout << "Content of the root node (only keys): ";
+    for (const auto& key : root->keys) {
+        std::cout << key << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "---------------------------------\n";
+    printTree(); // To visually inspect the tree structure
 }

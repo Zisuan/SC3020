@@ -87,26 +87,14 @@ void experiment1(const BPTree &bptree)
 }
 
 // Experiment 2: B+ Tree Statistics
-void experiment2(const BPTree &bptree)
-{
+// Experiment 2: B+ Tree Statistics
+void experiment2(BPTree &bptree) {
     printExperimentHeader("Experiment 2: B+ Tree Statistics");
 
-    // You need to implement these methods in your BPTree class
-    int nParameter = bptree.getNParameter();
-    int totalNodes = bptree.getTotalNodes();
-    int treeLevels = bptree.getTreeLevels();
-    auto rootContent = bptree.getRootContent(); // This should return a vector or similar structure containing the keys in the root node
-
-    std::cout << "Parameter n: " << nParameter << std::endl;
-    std::cout << "Total Nodes: " << totalNodes << std::endl;
-    std::cout << "Tree Levels: " << treeLevels << std::endl;
-    std::cout << "Root Content: ";
-    for (const auto &key : rootContent)
-    {
-        std::cout << key << " ";
-    }
-    std::cout << std::endl;
+    // Assuming loadData is called before this to populate the B+ tree
+    bptree.experiment2Statistics(); // This function will print all required statistics
 }
+
 
 // Experiment 3: Query for numVotes = 500
 void experiment3(BPTree &bptree)
@@ -189,16 +177,12 @@ void experiment5(BPTree &bptree)
     std::cout << "Elapsed Time: " << elapsed.count() << " ms" << std::endl;
 }
 
-int main()
-{
+int main() {
     BPTree bptree(BLOCK_SIZE); // Initialize B+ tree with block size
-
-    std::string filepath = "path/to/data.tsv";
-    loadData(bptree, filepath); // Load data from TSV file into B+ tree
+    std::string filepath = "Data/data.tsv"; // Relative path to the data file
 
     int choice = 0;
-    do
-    {
+    do {
         std::cout << "\nSelect an experiment to run (1-5) or 0 to exit:\n";
         std::cout << "1. Experiment 1: Storage Statistics\n";
         std::cout << "2. Experiment 2: B+ Tree Statistics\n";
@@ -209,27 +193,27 @@ int main()
         std::cout << "> ";
         std::cin >> choice;
 
-        switch (choice)
-        {
-        case 1:
-            experiment1(bptree);
-            break;
-        case 2:
-            experiment2(bptree);
-            break;
-        case 3:
-            experiment3(bptree);
-            break;
-        case 4:
-            experiment4(bptree);
-            break;
-        case 5:
-            experiment5(bptree);
-            break;
-        default:
-            break;
-        }
-    } while (choice != 0);
+        switch (choice) {
+            case 1:
+                experiment1(bptree); // No need to load data into B+ tree here
+                break;
+            case 2:
+                loadData(bptree, filepath); // Load data into B+ tree for building it
+                experiment2(bptree);
+                break;
+            case 3:
+                experiment3(bptree);
+                break;
+            case 4:
+                experiment4(bptree);
+                break;
+            case 5:
+                experiment5(bptree);
+                break;
+            default:
+                break;
+            }
+        } while (choice != 0);
 
-    return 0;
+        return 0;
 }

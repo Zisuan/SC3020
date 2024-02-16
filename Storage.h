@@ -9,6 +9,7 @@
 #include <sstream>
 #include <algorithm>
 #include <iomanip>
+#include "Record.h"
 
 // Constants
 extern const int BLOCK_SIZE;
@@ -25,15 +26,6 @@ void printHeader(const std::string &title);
 
 // Print a key-value pair
 void printKeyValue(const std::string &key, const std::string &value);
-
-// Record structure
-struct Record
-{
-    char tconst[10];
-    float averageRating;
-    int32_t numVotes;
-    Record(const std::string &id = "", float rating = 0.0, int32_t votes = 0);
-};
 
 // Block class
 class Block

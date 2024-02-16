@@ -19,10 +19,11 @@ public:
     ~BPTree(); // Destructor
 
     void insert(float key, const std::shared_ptr<Record>& recordPtr);
+    void printTree() const; // To print the B+ Tree structure for debugging
+    void experiment2Statistics() const; // To print the statistics for Experiment 2
     std::vector<std::shared_ptr<Record>> search(float key) const;
     std::vector<std::shared_ptr<Record>> rangeQuery(float lowerBound, float upperBound) const;
     void deleteKey(float key);
-    void printTree() const; // Utility to print tree structure for debugging
     int getNParameter() const { return maxKeys; } // Assuming maxKeys is your 'n' parameter
     int getTotalNodes() const; // To be implemented
     int getTreeLevels() const; // To be implemented
