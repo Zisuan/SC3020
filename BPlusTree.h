@@ -11,6 +11,8 @@ private:
     std::shared_ptr<Node> root;
     int maxKeys;
     int minKeys; // Minimum keys a node must hold, determined by block size
+    int countNodes(std::shared_ptr<Node> node) const;
+    int calculateDepth(std::shared_ptr<Node> node) const;
 
 public:
     BPTree(size_t blkSize); // Constructor based on block size
@@ -21,6 +23,13 @@ public:
     std::vector<std::shared_ptr<Record>> rangeQuery(float lowerBound, float upperBound) const;
     void deleteKey(float key);
     void printTree() const; // Utility to print tree structure for debugging
+    int getNParameter() const { return maxKeys; } // Assuming maxKeys is your 'n' parameter
+    int getTotalNodes() const; // To be implemented
+    int getTreeLevels() const; // To be implemented
+    std::vector<float> getRootContent() const { return root ? root->keys : std::vector<float>(); } // Returns keys of the root node
+    int getMaxKeys() const;
+    int getTotalRecords() const;
+    int getTotalBlocks() const;
 
 private:
     // Helper functions
@@ -39,6 +48,8 @@ private:
     void mergeWithNext(std::shared_ptr<Node>& node, std::shared_ptr<Node>& nextNode, std::shared_ptr<Node>& parent, int parentIndex);
     int findChildIndex(std::shared_ptr<Node>& parent, std::shared_ptr<Node>& child);
     void rebalanceAfterDeletion(std::shared_ptr<Node>& node);
+    int countRecords(std::shared_ptr<Node> node) const;
+    int countBlocks(std::shared_ptr<Node> node) const;
 };
 
 #endif // BPLUSTREE_H

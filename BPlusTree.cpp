@@ -330,3 +330,70 @@ void BPTree::rebalanceAfterDeletion(std::shared_ptr<Node>& node) {
         }
     }
 }
+
+int BPTree::getTotalNodes() const {
+    return countNodes(root);
+}
+
+int BPTree::countNodes(std::shared_ptr<Node> node) const {
+    if (node == nullptr) return 0;
+    int count = 1; // Count this node
+    if (!node->isLeaf) {
+        for (const auto& child : node->children) {
+            count += countNodes(child); // Count child nodes
+        }
+    }
+    return count;
+}
+
+int BPTree::getTreeLevels() const {
+    return calculateDepth(root);
+}
+
+int BPTree::calculateDepth(std::shared_ptr<Node> node) const {
+    if (node == nullptr || node->isLeaf) return 1;
+    // Just need to follow one branch down to a leaf to determine the depth
+    return 1 + calculateDepth(node->children.front());
+}
+
+int BPTree::getMaxKeys() const {
+    return maxKeys;
+}
+
+int BPTree::getTotalRecords() const {
+    return countRecords(root);
+}
+
+int BPTree::countRecords(std::shared_ptr<Node> node) const {
+    if (node == nullptr) {
+        return 0;
+    }
+    int totalRecords = 0;
+    if (node->isLeaf) {
+        for (const auto& recordGroup : node->records) {
+            totalRecords += recordGroup.size(); // Count records in each group (handling duplicates)
+        }
+    } else {
+        for (const auto& child : node->children) {
+            totalRecords += countRecords(child); // Recurse into child nodes
+        }
+    }
+    return totalRecords;
+}
+
+int BPTree::getTotalBlocks() const {
+    return countBlocks(root);
+}
+
+int BPTree::countBlocks(std::shared_ptr<Node> node) const {
+    if (node == nullptr) {
+        return 0;
+    }
+    int totalBlocks = 1; // Count the current node
+    if (!node->isLeaf) {
+        for (const auto& child : node->children) {
+            totalBlocks += countBlocks(child); // Recurse into child nodes
+        }
+    }
+    return totalBlocks;
+}
