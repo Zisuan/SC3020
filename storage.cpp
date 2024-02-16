@@ -214,7 +214,7 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk)
 
     tsvFile.close();
 }
-
+/*
 int main()
 {
     SimulatedDisk disk(DISK_CAPACITY); // Initialize the simulated disk
@@ -238,3 +238,4 @@ int main()
 
     return 0;
 }
+*/
