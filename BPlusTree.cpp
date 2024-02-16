@@ -7,6 +7,10 @@ BPTree::BPTree(size_t blkSize) {
     this->root = std::make_shared<Node>(true); // Initially, root is a leaf node
 }
 
+BPTree::~BPTree() {
+    // Destructor: Cleanup resources if needed
+}
+
 void BPTree::insert(float key, const std::shared_ptr<Record>& recordPtr) {
     std::shared_ptr<Node> leaf = findLeafNode(key);
 

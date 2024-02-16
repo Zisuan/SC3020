@@ -2,14 +2,9 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include "Record.h"  // Include Record definition from Record.h
 #include <vector>
 #include <memory>
-
-struct Record {
-    char tconst[10];     // IMDb identifier
-    float averageRating; // Movie rating
-    int32_t numVotes;    // Number of votes
-};
 
 // B+ Tree Node
 struct Node {
