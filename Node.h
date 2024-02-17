@@ -15,6 +15,7 @@ struct Node {
     // Pointers to records for leaf nodes, allowing for duplicates
     std::vector<std::vector<std::shared_ptr<Record>>> records; 
     std::shared_ptr<Node> next; // Pointer to the next leaf node for range queries
+    std::weak_ptr<Node> parent; // Pointer to the parent node
 
     explicit Node(bool leaf) : isLeaf(leaf) {}
 };

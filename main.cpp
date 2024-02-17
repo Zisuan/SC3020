@@ -6,43 +6,56 @@
 #include <vector>
 #include <chrono>
 #include <iomanip>
-#include "storage.h" // Include the header file for storage-related functions
+#include "Storage.h" // Include the header file for storage-related functions
+#include "Record.h"
 
-// Function to load data into the B+ tree from a TSV file
-void loadData(BPTree &bptree, const std::string &filepath)
-{
+void loadData(BPTree &bptree, const std::string &filepath) {
     std::ifstream file(filepath);
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         std::cerr << "Failed to open file: " << filepath << std::endl;
         return;
     }
 
     std::string line;
-    std::getline(file, line); // Skip header line
+    std::getline(file, line); // Skip the header line if present.
 
-    while (std::getline(file, line))
-    {
+    int lineCounter = 0; // Add a counter for the lines read
+
+    while (std::getline(file, line)) {
         std::istringstream iss(line);
-        std::string tconst, averageRating, numVotesStr;
+        std::string tconst, averageRatingStr, numVotesStr;
         std::getline(iss, tconst, '\t');
-        std::getline(iss, averageRating, '\t');
+        std::getline(iss, averageRatingStr, '\t');
         std::getline(iss, numVotesStr, '\t');
 
-        float rating = std::stof(averageRating);
-        int numVotes = std::stoi(numVotesStr);
+        try {
+            float averageRating = std::stof(averageRatingStr);
+            int numVotes = std::stoi(numVotesStr);
 
-        bptree.insert(numVotes, std::make_shared<Record>(tconst, rating, numVotes));
+            auto record = std::make_shared<Record>(tconst, averageRating, numVotes);
+            bptree.insert(numVotes, record); // Assuming the B+ tree is indexed on 'numVotes'.
+        } catch (const std::invalid_argument& ia) {
+            std::cerr << "Invalid argument: " << ia.what() << " for line: " << line << std::endl;
+            continue; // Skip this record and continue with the next
+        } catch (const std::out_of_range& oor) {
+            std::cerr << "Out of range: " << oor.what() << " for line: " << line << std::endl;
+            continue; // Skip this record and continue with the next
+        }
+
+        lineCounter++; // Increment the counter for each line read
+
+        if (lineCounter % 10000 == 0) {
+            std::cout << "Loaded " << lineCounter << " records." << std::endl;
+        }
     }
 
     file.close();
+    std::cout << "Data loaded successfully. Total records loaded: " << lineCounter << std::endl;
 }
 
 // Utility function to print experiment header
-void printExperimentHeader(const std::string &title)
-{
-    std::cout << "\n"
-              << title << "\n";
+void printExperimentHeader(const std::string &title) {
+    std::cout << "\n" << title << "\n";
     std::cout << std::string(title.length(), '=') << "\n";
 }
 
@@ -87,13 +100,17 @@ void experiment1(const BPTree &bptree)
 }
 
 // Experiment 2: B+ Tree Statistics
-// Experiment 2: B+ Tree Statistics
 void experiment2(BPTree &bptree) {
     printExperimentHeader("Experiment 2: B+ Tree Statistics");
 
-    // Assuming loadData is called before this to populate the B+ tree
-    bptree.experiment2Statistics(); // This function will print all required statistics
+    if (bptree.getTotalNodes() == 0) {
+        std::cout << "No data loaded in B+ Tree. Please load data first.\n";
+        return;
+    }
+
+    bptree.experiment2Statistics();
 }
+
 
 
 // Experiment 3: Query for numVotes = 500
