@@ -36,8 +36,8 @@ private:
     // Helper functions
     void insertInternal(float key, std::shared_ptr<Node> parent, std::shared_ptr<Node> child);
     std::shared_ptr<Node> findLeafNode(float key) const;
-    void splitLeafNode(std::shared_ptr<Node>& leafNode);
     void splitInternalNode(std::shared_ptr<Node>& internalNode);
+    void splitLeafNode(std::shared_ptr<Node>& leaf);
     void deleteInternal(float key, std::shared_ptr<Node>& cursor, std::shared_ptr<Node>& child);
     void removeKey(std::shared_ptr<Node>& node, float key);
     void redistributeNodes(std::shared_ptr<Node>& node);

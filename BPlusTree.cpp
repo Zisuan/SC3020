@@ -18,28 +18,110 @@ BPTree::~BPTree() {
 
 // Function to insert a new record into the B+ Tree
 void BPTree::insert(float key, const std::shared_ptr<Record>& recordPtr) {
-    if (!root) { // Ensure root exists
-        root = std::make_shared<Node>(true);
+    if (!root) {
+        root = std::make_shared<Node>(true); // true indicates that the node is a leaf
+        root->keys.push_back(key);
+        root->records.push_back({recordPtr});
+        return;
     }
 
-    // Find the appropriate leaf node for the new key
-    std::shared_ptr<Node> leaf = findLeafNode(key);
+    std::shared_ptr<Node> cursor = root;
+    std::shared_ptr<Node> parent = nullptr; // Initialize parent as nullptr
 
-    // Insert the record in the leaf node in sorted order
-    auto it = std::lower_bound(leaf->keys.begin(), leaf->keys.end(), key);
-    int index = it - leaf->keys.begin();
-    if (it != leaf->keys.end() && *it == key) {
-        // If key already exists, append the record to the list at the existing key
-        leaf->records[index].push_back(recordPtr);
+    // Navigate down to the leaf node where the key should be inserted
+    while (!cursor->isLeaf) {
+        parent = cursor; // Keep track of the parent
+        bool found = false;
+        for (size_t i = 0; i < cursor->keys.size(); ++i) {
+            if (key < cursor->keys[i]) {
+                cursor = cursor->children[i];
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            // If the key is greater than all keys in the current node, go to the rightmost child
+            cursor = cursor->children[cursor->keys.size()];
+        }
+    }
+
+    // Insert the key and record in the leaf node
+    auto it = std::lower_bound(cursor->keys.begin(), cursor->keys.end(), key);
+    int index = it - cursor->keys.begin();
+    cursor->keys.insert(it, key);
+    cursor->records.insert(cursor->records.begin() + index, {recordPtr});
+
+    // Split the leaf node if it overflows
+    if (cursor->keys.size() > maxKeys) {
+        splitLeafNode(cursor);
+    }
+}
+
+
+// Function to split a leaf node that overflows after insertion
+void BPTree::splitLeafNode(std::shared_ptr<Node>& leaf) {
+    auto newLeaf = std::make_shared<Node>(true); // Create a new leaf node
+    int median = leaf->keys.size() / 2;
+
+    // Distribute the keys and records to the new leaf
+    newLeaf->keys.assign(leaf->keys.begin() + median, leaf->keys.end());
+    newLeaf->records.assign(leaf->records.begin() + median, leaf->records.end());
+
+    // Resize the original leaf to hold only the left half
+    leaf->keys.resize(median);
+    leaf->records.resize(median);
+
+    // Update linked list pointers
+    newLeaf->next = leaf->next;
+    leaf->next = newLeaf;
+
+    // Handling parent
+    std::shared_ptr<Node> parent = leaf->parent.lock();
+    if (!parent) { // This means leaf was the root
+        auto newRoot = std::make_shared<Node>(false); // false indicates it's an internal node
+        newRoot->keys.push_back(newLeaf->keys.front());
+        newRoot->children.push_back(leaf);
+        newRoot->children.push_back(newLeaf);
+
+        // Update parent pointers
+        leaf->parent = newRoot;
+        newLeaf->parent = newRoot;
+
+        // Update the tree's root
+        root = newRoot;
     } else {
-        // If key is new, insert the key and record at the correct position
-        leaf->keys.insert(it, key);
-        leaf->records.insert(leaf->records.begin() + index, {recordPtr});
+        // If there's a parent, insert the new key into it
+        insertInternal(newLeaf->keys.front(), parent, newLeaf);
     }
+}
 
-    // If the leaf node overflows, split the leaf node
-    if (leaf->keys.size() > maxKeys) {
-        splitLeafNode(leaf);
+// Function to insert a new key into an internal node during node splitting
+void BPTree::insertInternal(float key, std::shared_ptr<Node> parent, std::shared_ptr<Node> child) {
+    auto it = std::lower_bound(parent->keys.begin(), parent->keys.end(), key);
+    int index = it - parent->keys.begin();
+    parent->keys.insert(it, key);
+    parent->children.insert(parent->children.begin() + index + 1, child);
+
+    if (parent->keys.size() > maxKeys) {
+        // Split the internal node
+        auto newInternal = std::make_shared<Node>(false);
+        int median = parent->keys.size() / 2;
+
+        newInternal->keys.assign(parent->keys.begin() + median + 1, parent->keys.end());
+        newInternal->children.assign(parent->children.begin() + median + 1, parent->children.end());
+
+        parent->keys.resize(median);
+        parent->children.resize(median + 1);
+
+        if (parent == root) {
+            auto newRoot = std::make_shared<Node>(false);
+            newRoot->keys.push_back(parent->keys[median]);
+            newRoot->children.push_back(parent);
+            newRoot->children.push_back(newInternal);
+            root = newRoot;
+        } else {
+            insertInternal(parent->keys[median], findParent(root, parent), newInternal);
+        }
     }
 }
 
@@ -60,80 +142,6 @@ std::shared_ptr<Node> BPTree::findLeafNode(float key) const {
         }
     }
     return cursor; // Return the leaf node where the key fits
-}
-
-// Function to split a leaf node that overflows after insertion
-void BPTree::splitLeafNode(std::shared_ptr<Node>& leaf) {
-    auto newLeaf = std::make_shared<Node>(true);
-    int median = leaf->keys.size() / 2;
-
-    // Move the second half of the keys and records to the new leaf
-    newLeaf->keys.assign(leaf->keys.begin() + median, leaf->keys.end());
-    newLeaf->records.assign(leaf->records.begin() + median, leaf->records.end());
-
-    // Keep the first half of the keys and records in the original leaf
-    leaf->keys.resize(median);
-    leaf->records.resize(median);
-
-    if (!leaf->parent.lock()) {
-        // If the leaf is the root, create a new root node
-        auto newRoot = std::make_shared<Node>(false);
-        newRoot->keys.push_back(newLeaf->keys[0]);
-        newRoot->children.push_back(leaf);
-        newRoot->children.push_back(newLeaf);
-        leaf->parent = newRoot;
-        newLeaf->parent = newRoot;
-        root = newRoot;
-    } else {
-        // If the leaf is not the root, insert the first key of the new leaf to the parent
-        insertInternal(newLeaf->keys[0], leaf->parent.lock(), newLeaf);
-    }
-
-    // Update the linked list pointers for leaf level traversal
-    newLeaf->next = leaf->next;
-    leaf->next = newLeaf;
-}
-
-// Function to insert a new key into an internal node during node splitting
-void BPTree::insertInternal(float key, std::shared_ptr<Node> parent, std::shared_ptr<Node> child) {
-    if (parent->keys.size() < maxKeys) {
-        // If the parent has room, insert the key and child pointer at the correct position
-        auto it = std::lower_bound(parent->keys.begin(), parent->keys.end(), key);
-        int index = it - parent->keys.begin();
-        parent->keys.insert(it, key);
-        parent->children.insert(parent->children.begin() + index + 1, child);
-    } else {
-        // If the parent is full, split the parent node
-        auto newInternal = std::make_shared<Node>(false);
-        std::vector<float> tempKeys(parent->keys);
-        std::vector<std::shared_ptr<Node>> tempChildren(parent->children);
-
-        // Insert the new key and child pointer into the temporary vectors
-        auto it = std::lower_bound(tempKeys.begin(), tempKeys.end(), key);
-        int index = it - tempKeys.begin();
-        tempKeys.insert(it, key);
-        tempChildren.insert(tempChildren.begin() + index + 1, child);
-
-        // Split the parent node into two nodes at the median
-        int median = tempKeys.size() / 2;
-        parent->keys.assign(tempKeys.begin(), tempKeys.begin() + median);
-        parent->children.assign(tempChildren.begin(), tempChildren.begin() + median + 1);
-
-        newInternal->keys.assign(tempKeys.begin() + median + 1, tempKeys.end());
-        newInternal->children.assign(tempChildren.begin() + median + 1, tempChildren.end());
-
-        if (parent == root) {
-            // If the parent is the root, create a new root
-            auto newRoot = std::make_shared<Node>(false);
-            newRoot->keys.push_back(tempKeys[median]);
-            newRoot->children.push_back(parent);
-            newRoot->children.push_back(newInternal);
-            root = newRoot;
-        } else {
-            // If the parent is not the root, insert the median key into the grandparent
-            insertInternal(tempKeys[median], findParent(root, parent), newInternal);
-        }
-    }
 }
 
 // Function to find the parent node of a given child node
@@ -459,5 +467,5 @@ void BPTree::experiment2Statistics() const {
     }
     std::cout << std::endl;
     std::cout << "---------------------------------\n";
-    printTree(); // Print the structure of the B+ Tree for visual inspection
+    //printTree(); // Print the structure of the B+ Tree for visual inspection
 }
