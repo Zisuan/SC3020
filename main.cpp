@@ -109,6 +109,27 @@ void experiment2(BPTree &bptree) {
     }
 
     bptree.experiment2Statistics();
+
+    // Open a file stream for writing the B+ Tree structure
+    std::ofstream outFile("BPlusTreeStructure.txt");
+    if (!outFile.is_open()) {
+        std::cerr << "Failed to open file for writing B+ Tree structure.\n";
+        return;
+    }
+
+    // Redirect std::cout to the file for B+ Tree structure output
+    std::streambuf *coutBuf = std::cout.rdbuf();
+    std::cout.rdbuf(outFile.rdbuf());
+
+    std::cout << "B+ Tree Level-Order Structure:\n";
+    bptree.breadthFirstTraversal();
+
+    // Restore the original buffer so future std::cout goes to console again
+    std::cout.rdbuf(coutBuf);
+
+    outFile.close(); // Close the file
+
+    std::cout << "B+ Tree structure has been written to 'BPlusTreeStructure.txt'.\n";
 }
 
 

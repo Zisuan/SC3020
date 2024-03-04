@@ -469,3 +469,29 @@ void BPTree::experiment2Statistics() const {
     std::cout << "---------------------------------\n";
     //printTree(); // Print the structure of the B+ Tree for visual inspection
 }
+
+void BPTree::breadthFirstTraversal() const {
+    if (!root) return; // Check if the tree is empty
+
+    std::deque<std::shared_ptr<Node>> queue;
+    queue.push_back(root);
+
+    while (!queue.empty()) {
+        auto current = queue.front();
+        queue.pop_front();
+
+        // Process the current node, e.g., print its keys
+        for (const auto& key : current->keys) {
+            std::cout << key << " ";
+        }
+        std::cout << "| "; // Separator for nodes at the same level
+
+        // Enqueue child nodes
+        if (!current->isLeaf) {
+            for (const auto& child : current->children) {
+                queue.push_back(child);
+            }
+        }
+    }
+    std::cout << std::endl;
+}
