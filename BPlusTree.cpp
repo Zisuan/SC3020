@@ -568,6 +568,70 @@ void BPlusTree::experiment2()
     }
   }
 }
+void BPlusTree::experiment5(int numVotesToDelete)
+{
+    search(numVotesToDelete);
+    int bruteForceBlocksAccessed = 0;
+    int totalCount = 0; // To count the number of records with numVotesToDelete
+    auto bfStart = std::chrono::high_resolution_clock::now();
+    Node* current = root;
+    // Traverse to the leftmost leaf node
+    while (current != NULL && !current->IS_LEAF) {
+        current = current->ptr[0];
+    }
+    // Now iterate through all leaf nodes and their keys
+    while (current != NULL) {
+        bruteForceBlocksAccessed++; // Counting each leaf node as a block accessed
+        for (int i = 0; i < current->size; i++) {
+            if (current->key[i] == numVotesToDelete) {
+                // Traverse through buffer nodes if the key matches
+                Node* bufferNode = current->ptr[i];
+                while (bufferNode != NULL) {
+                    totalCount += bufferNode->size; // Assuming each buffer node contains records for the matching key
+                    bufferNode = bufferNode->ptr[0]; // Move to the next buffer node
+                }
+            }
+        }
+        current = current->ptr[N]; // Moving to the next leaf node
+    }
+    auto bfEnd = std::chrono::high_resolution_clock::now();
+    auto bfDuration = std::chrono::duration_cast<std::chrono::milliseconds>(bfEnd - bfStart);
+    // Display brute-force method statistics
+    std::cout << "Brute-force scan accessed " << bruteForceBlocksAccessed << " blocks." << std::endl;
+    std::cout << "Found " << totalCount << " records with numVotes equal to " << numVotesToDelete << std::endl;
+    std::cout << "Brute-force scan running time: " << bfDuration.count() << " milliseconds." << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    // Traverse through the tree and delete keys with numVotes = 1,000
+    deleteKey(numVotesToDelete);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    // After deletion, we calculate the statistics
+    int numberOfNodes = this->nodes; // Total number of nodes after deletion
+    int numberOfLevels = this->levels; // Total number of levels after deletion
+    std::vector<int> rootKeys; // Keys of the root node after deletion
+    search(numVotesToDelete);
+    if (root != NULL) {
+        for (int i = 0; i < root->size; i++) {
+            rootKeys.push_back(root->key[i]);
+        }
+    }
+
+    // Display the statistics
+    std::cout << "Experiment 5 Statistics:" << std::endl;
+    std::cout << "Number of nodes in the B+ tree: " << numberOfNodes << std::endl;
+    std::cout << "Number of levels in the B+ tree: " << numberOfLevels << std::endl;
+    std::cout << "Keys of the root node: ";
+    for (int key : rootKeys) {
+        std::cout << key << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Running time of the deletion process: " << duration.count() << " milliseconds" << std::endl;
+
+
+}
 
 void BPlusTree::display()
 {

@@ -50,7 +50,6 @@ int main() {
             case 2:{
                 // Assuming `disk` is your SimulatedDisk instance with data already loaded
                 disk.loadBPlusTree(bptree); // Make sure this method properly populates your BPlusTree
-
                 bptree.experiment2(); // This will print the stats for Experiment 2
                 break;
             }
@@ -61,7 +60,7 @@ int main() {
                 // Placeholder for Experiment 4
                 break;
             case 5:
-                // Placeholder for Experiment 5
+                bptree.experiment5(1000);
                 break;
             default:
                 break;

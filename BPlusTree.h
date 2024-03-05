@@ -45,6 +45,7 @@ public:
     void deleteKey(int x);
     void display();
     void experiment2();
+    void experiment5(int numVotesToDelete);
 };
 
 #endif
