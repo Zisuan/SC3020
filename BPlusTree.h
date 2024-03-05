@@ -1,57 +1,50 @@
-// BPlusTree.h
 #ifndef BPLUSTREE_H
 #define BPLUSTREE_H
 
-#include "Node.h"
+#include <iostream>
+#include <cstring>
 #include <vector>
-#include <memory>
+#include <stdio.h>
+#include <limits.h>
+#include <cmath>
+#include "storage.h"
 
-class BPTree {
-private:
-    std::shared_ptr<Node> root;
-    int maxKeys;
-    int minKeys; // Minimum keys a node must hold, determined by block size
-    int countNodes(std::shared_ptr<Node> node) const;
-    int calculateDepth(std::shared_ptr<Node> node) const;
+using namespace std;
 
+class Node {
 public:
-    BPTree(size_t blkSize); // Constructor based on block size
-    ~BPTree(); // Destructor
+    bool IS_LEAF; //2bytes
+    int *key; //4N bytes
+    int size; //4bytes
+    Node **ptr;//8(N+1) bytes
 
-    void insert(float key, const std::shared_ptr<Record>& recordPtr);
-    void printTree() const; // To print the B+ Tree structure for debugging
-    void experiment2Statistics() const; // To print the statistics for Experiment 2
-    std::vector<std::shared_ptr<Record>> search(float key) const;
-    std::vector<std::shared_ptr<Record>> rangeQuery(float lowerBound, float upperBound) const;
-    void deleteKey(float key);
-    void breadthFirstTraversal() const;
-    int getNParameter() const { return maxKeys; } // Assuming maxKeys is your 'n' parameter
-    int getTotalNodes() const; // To be implemented
-    int getTreeLevels() const; // To be implemented
-    std::vector<float> getRootContent() const { return root ? root->keys : std::vector<float>(); } // Returns keys of the root node
-    int getMaxKeys() const;
-    int getTotalRecords() const;
-    int getTotalBlocks() const;
-
-private:
-    // Helper functions
-    void insertInternal(float key, std::shared_ptr<Node> parent, std::shared_ptr<Node> child);
-    std::shared_ptr<Node> findLeafNode(float key) const;
-    void splitInternalNode(std::shared_ptr<Node>& internalNode);
-    void splitLeafNode(std::shared_ptr<Node>& leaf);
-    void deleteInternal(float key, std::shared_ptr<Node>& cursor, std::shared_ptr<Node>& child);
-    void removeKey(std::shared_ptr<Node>& node, float key);
-    void redistributeNodes(std::shared_ptr<Node>& node);
-    void mergeNodes(std::shared_ptr<Node>& node);
-    void printTree(std::shared_ptr<Node> node, int space) const; // Recursive utility for printTree
-    std::shared_ptr<Node> findParent(const std::shared_ptr<Node>& cursor, const std::shared_ptr<Node>& child);
-    void borrowFromNext(std::shared_ptr<Node>& node, std::shared_ptr<Node>& nextNode, std::shared_ptr<Node>& parent, int parentIndex);
-    void borrowFromPrev(std::shared_ptr<Node>& node, std::shared_ptr<Node>& prevNode, std::shared_ptr<Node>& parent, int parentIndex);
-    void mergeWithNext(std::shared_ptr<Node>& node, std::shared_ptr<Node>& nextNode, std::shared_ptr<Node>& parent, int parentIndex);
-    int findChildIndex(std::shared_ptr<Node>& parent, std::shared_ptr<Node>& child);
-    void rebalanceAfterDeletion(std::shared_ptr<Node>& node);
-    int countRecords(std::shared_ptr<Node> node) const;
-    int countBlocks(std::shared_ptr<Node> node) const;
+    // to point to records
+    unsigned char **records;//8N bytes
+    Node();
 };
 
-#endif // BPLUSTREE_H
+class BPlusTree {
+    int nodes = 0;
+    int levels = 0;
+    int numKeys = 0;
+    Node *root = NULL; //root node
+    int deleteCounter = 0; // Keep track of deleted numVotes = 1000
+    
+    void insertInternal(int x, Node *parent, Node *child);
+    void deleteInternal(int x, Node *curNode, Node *child);
+    Node *findParent(Node* curNode, Node *child);
+    Node* createNewLeafNode(int x, unsigned char *record);
+    Node* createNewBufferNode(int x, unsigned char *record);
+    Node** traverseToLeafNode(int x);
+    void deallocate(Node *node);
+
+public:
+    BPlusTree();
+    void search(int x);
+    void insertKey(int x,unsigned char *record);
+    void deleteKey(int x);
+    void display();
+    void experiment2();
+};
+
+#endif

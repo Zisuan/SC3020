@@ -144,6 +144,16 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk) {
     tsvFile.close();
 }
 
+void SimulatedDisk::loadBPlusTree(BPlusTree& tree) {
+    for (auto& block : blocks) {
+        for (auto& record : block.records) {
+            // Assuming you have a way to get a pointer to the record
+            unsigned char* recordPtr = reinterpret_cast<unsigned char*>(&record);
+            tree.insertKey(record.numVotes, recordPtr);
+        }
+    }
+}
+
 /*
 int main()
 {
