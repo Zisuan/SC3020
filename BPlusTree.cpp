@@ -595,7 +595,8 @@ void BPlusTree::experiment5(int numVotesToDelete)
         current = current->ptr[N]; // Moving to the next leaf node
     }
     auto bfEnd = std::chrono::high_resolution_clock::now();
-    auto bfDuration = std::chrono::duration_cast<std::chrono::milliseconds>(bfEnd - bfStart);
+    std::chrono::duration<double> bfDuration = bfEnd - bfStart;
+    bfDuration = bfDuration * 1000;
     // Display brute-force method statistics
     std::cout << "Brute-force scan accessed " << bruteForceBlocksAccessed << " blocks." << std::endl;
     std::cout << "Found " << totalCount << " records with numVotes equal to " << numVotesToDelete << std::endl;
@@ -606,8 +607,8 @@ void BPlusTree::experiment5(int numVotesToDelete)
     deleteKey(numVotesToDelete);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
+    std::chrono::duration<double> duration = end - start;
+    duration = duration * 1000;
     // After deletion, we calculate the statistics
     int numberOfNodes = this->nodes; // Total number of nodes after deletion
     int numberOfLevels = this->levels; // Total number of levels after deletion
@@ -628,7 +629,7 @@ void BPlusTree::experiment5(int numVotesToDelete)
         std::cout << key << " ";
     }
     std::cout << std::endl;
-    std::cout << "Running time of the deletion process: " << duration.count() << " milliseconds" << std::endl;
+    std::cout << "Running time of the deletion process: " << duration.count() << " millieconds." << std::endl;
 
 
 }
