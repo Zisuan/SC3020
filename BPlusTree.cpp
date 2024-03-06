@@ -99,8 +99,8 @@ void BPlusTree::insertKey(int x, unsigned char *record)
     // create new leaf node
     Node *newLeaf = new Node;
 
-    //tempNode and buffers will store the new sequence of records of size N+1
-    //this will be later used to update the curNode and newLeaf accordingly
+    // tempNode and buffers will store the new sequence of records of size N+1
+    // this will be later used to update the curNode and newLeaf accordingly
     int tempNode[N + 1];
     Node *buffers[N + 1];
 
@@ -130,7 +130,7 @@ void BPlusTree::insertKey(int x, unsigned char *record)
       }
     }
 
-    //rearrange pointers
+    // rearrange pointers
     Node *temp = curNode->ptr[N];
     curNode->ptr[N] = newLeaf;
     newLeaf->ptr[N] = temp;
@@ -139,7 +139,7 @@ void BPlusTree::insertKey(int x, unsigned char *record)
     newLeaf->size = (N + 1) / 2;
     curNode->size = (N + 1) - newLeaf->size;
 
-    //update curNode and add to newLeaf 
+    // update curNode and add to newLeaf
     for (int i = 0; i < curNode->size; i++)
     {
       curNode->key[i] = tempNode[i];
@@ -283,7 +283,8 @@ void BPlusTree::deleteKey(int x)
   {
     if (curNode->key[i] == x)
     {
-      do {
+      do
+      {
         for (int j = i; j < curNode->size - 1; j++)
         {
           curNode->key[j] = curNode->key[j + 1];
@@ -522,63 +523,62 @@ void BPlusTree::deleteInternal(int x, Node *curNode, Node *child)
     }
   }
 }
+void BPlusTree::experiment3(int numVotesToRetrieve)
+{
+  int indexNodesAccessed = 0;
+  int dataBlocksAccessed = 0;
+  double totalRatings = 0.0;
+  int matchingRecordsCount = 0;
+  auto start = std::chrono::high_resolution_clock::now();
 
-void BPlusTree::experiment3(int numVotes) {
-    search(numVotes);
-    auto start = std::chrono::high_resolution_clock::now();
-    int indexNodesAccessed = 0, dataBlocksAccessed = 0;
-    float totalRating = 0;
-    int matchingRecords = 0;
+  // The traversal part is hypothetical and needs to be replaced with your actual traversal logic
+  Node *current = root;
+  while (current != nullptr && !current->IS_LEAF)
+  {
+    current = current->ptr[0]; // Traverse down to the leftmost leaf
+    indexNodesAccessed++;
+  }
 
-    // Navigate to the leaf node that might contain the specified numVotes
-    Node* current = root;
-    while (!current->IS_LEAF) {
-        indexNodesAccessed++;
-        bool found = false;
-        for (int i = 0; i < current->size; i++) {
-            if (numVotes < current->key[i]) {
-                current = current->ptr[i];
-                found = true;
-                break;
-            }
+  // Start iterating through leaf nodes
+  while (current != nullptr)
+  {
+    dataBlocksAccessed++; // Each leaf node is a data block access
+    for (int i = 0; i < current->size; i++)
+    {
+      if (current->key[i] == numVotesToRetrieve)
+      {
+        // Access the buffer node linked to this key
+        Node *bufferNode = current->ptr[i];
+        while (bufferNode != nullptr)
+        {
+          // For each record in the buffer node, calculate statistics
+          for (int j = 0; j < bufferNode->size; j++)
+          {
+            Record *record = reinterpret_cast<Record *>(bufferNode->records[j]);
+            totalRatings += record->averageRating;
+            matchingRecordsCount++;
+          }
+          bufferNode = bufferNode->ptr[0]; // Assuming this is how you traverse buffer nodes
         }
-        if (!found) current = current->ptr[current->size];
+      }
     }
+    current = current->ptr[N]; // Move to the next leaf node. Adjust this access according to your implementation
+  }
 
-    // Now in the leaf nodes, look for records with the specified numVotes
-    while (current != nullptr) {
-        for (int i = 0; i < current->size; i++) {
-            if (current->key[i] == numVotes) {
-                dataBlocksAccessed++;
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> duration = end - start;
 
-                //construct a std::vector<unsigned char> from the raw data.
-                std::vector<unsigned char> buffer(current->records[i], current->records[i] + sizeof(Record));
+  double averageRating = matchingRecordsCount > 0 ? totalRatings / matchingRecordsCount : 0.0;
 
-                // Deserialize the Record from current->records[i]
-                Record record = Record::deserializeRecord(buffer);
-                totalRating += record.averageRating;
-                matchingRecords++;
-            }
-        }
-        current = current->ptr[current->size]; // Traverse to the next leaf node if exists
-    }
-
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> duration = end - start;
-
-    // Reporting
-    std::cout << "Index Nodes Accessed: " << indexNodesAccessed << "\n";
-    std::cout << "Data Blocks Accessed: " << dataBlocksAccessed << "\n";
-    if (matchingRecords > 0) {
-        std::cout << "Average Rating of Matching Records: " << (totalRating / matchingRecords) << "\n";
-    } else {
-        std::cout << "No records found for numVotes = " << numVotes << "\n";
-    }
-    std::cout << "Retrieval Running Time: " << duration.count() << " milliseconds\n";
-    
+  // Display statistics
+  std::cout << "Experiment 3 Statistics:" << std::endl;
+  std::cout << "Number of index nodes accessed: " << indexNodesAccessed << std::endl;
+  std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << std::endl;
+  std::cout << "Average rating of matching records: " << averageRating << std::endl;
+  std::cout << "Running time of the retrieval process: " << duration.count() << " milliseconds." << std::endl;
 }
 
-//experiment 3 and 4 and re-formatted search functions
+// experiment 3 and 4 and re-formatted search functions
 void BPlusTree::search(int x)
 {
   if (root != NULL)
@@ -590,7 +590,7 @@ void BPlusTree::search(int x)
       {
         cout << "Found" << endl;
 
-        //cross check count of a particular key
+        // cross check count of a particular key
         int count = 0;
         Node *buffer = curNode->ptr[i];
         while (true)
@@ -626,74 +626,81 @@ void BPlusTree::experiment2()
 }
 void BPlusTree::experiment5(int numVotesToDelete)
 {
-    search(numVotesToDelete);
-    int bruteForceBlocksAccessed = 0;
-    int totalCount = 0; // To count the number of records with numVotesToDelete
-    auto bfStart = std::chrono::high_resolution_clock::now();
-    Node* current = root;
-    // Traverse to the leftmost leaf node
-    while (current != NULL && !current->IS_LEAF) {
-        current = current->ptr[0];
-    }
-    // Now iterate through all leaf nodes and their keys
-    while (current != NULL) {
-        bruteForceBlocksAccessed++; // Counting each leaf node as a block accessed
-        for (int i = 0; i < current->size; i++) {
-            if (current->key[i] == numVotesToDelete) {
-                // Traverse through buffer nodes if the key matches
-                Node* bufferNode = current->ptr[i];
-                while (bufferNode != NULL) {
-                    totalCount += bufferNode->size; // Assuming each buffer node contains records for the matching key
-                    bufferNode = bufferNode->ptr[0]; // Move to the next buffer node
-                }
-            }
+  search(numVotesToDelete);
+  int bruteForceBlocksAccessed = 0;
+  int totalCount = 0; // To count the number of records with numVotesToDelete
+  auto bfStart = std::chrono::high_resolution_clock::now();
+  Node *current = root;
+  // Traverse to the leftmost leaf node
+  while (current != NULL && !current->IS_LEAF)
+  {
+    current = current->ptr[0];
+  }
+  // Now iterate through all leaf nodes and their keys
+  while (current != NULL)
+  {
+    bruteForceBlocksAccessed++; // Counting each leaf node as a block accessed
+    for (int i = 0; i < current->size; i++)
+    {
+      if (current->key[i] == numVotesToDelete)
+      {
+        // Traverse through buffer nodes if the key matches
+        Node *bufferNode = current->ptr[i];
+        while (bufferNode != NULL)
+        {
+          totalCount += bufferNode->size;  // Assuming each buffer node contains records for the matching key
+          bufferNode = bufferNode->ptr[0]; // Move to the next buffer node
         }
-        current = current->ptr[N]; // Moving to the next leaf node
+      }
     }
-    auto bfEnd = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> bfDuration = bfEnd - bfStart;
-    bfDuration = bfDuration * 1000;
-    // Display brute-force method statistics
-    std::cout << "Brute-force scan accessed " << bruteForceBlocksAccessed << " blocks." << std::endl;
-    std::cout << "Found " << totalCount << " records with numVotes equal to " << numVotesToDelete << std::endl;
-    std::cout << "Brute-force scan running time: " << bfDuration.count() << " milliseconds." << std::endl;
+    current = current->ptr[N]; // Moving to the next leaf node
+  }
+  auto bfEnd = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> bfDuration = bfEnd - bfStart;
+  bfDuration = bfDuration * 1000;
+  // Display brute-force method statistics
+  std::cout << "Brute-force scan accessed " << bruteForceBlocksAccessed << " blocks." << std::endl;
+  std::cout << "Found " << totalCount << " records with numVotes equal to " << numVotesToDelete << std::endl;
+  std::cout << "Brute-force scan running time: " << bfDuration.count() << " milliseconds." << std::endl;
 
-    auto start = std::chrono::high_resolution_clock::now();
-    // Traverse through the tree and delete keys with numVotes = 1,000
-    deleteKey(numVotesToDelete);
+  auto start = std::chrono::high_resolution_clock::now();
+  // Traverse through the tree and delete keys with numVotes = 1,000
+  deleteKey(numVotesToDelete);
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration = end - start;
-    duration = duration * 1000;
-    // After deletion, we calculate the statistics
-    int numberOfNodes = this->nodes; // Total number of nodes after deletion
-    int numberOfLevels = this->levels; // Total number of levels after deletion
-    std::vector<int> rootKeys; // Keys of the root node after deletion
-    search(numVotesToDelete);
-    if (root != NULL) {
-        for (int i = 0; i < root->size; i++) {
-            rootKeys.push_back(root->key[i]);
-        }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
+  duration = duration * 1000;
+  // After deletion, we calculate the statistics
+  int numberOfNodes = this->nodes;   // Total number of nodes after deletion
+  int numberOfLevels = this->levels; // Total number of levels after deletion
+  std::vector<int> rootKeys;         // Keys of the root node after deletion
+  search(numVotesToDelete);
+  if (root != NULL)
+  {
+    for (int i = 0; i < root->size; i++)
+    {
+      rootKeys.push_back(root->key[i]);
     }
+  }
 
-    // Display the statistics
-    std::cout << "Experiment 5 Statistics:" << std::endl;
-    std::cout << "Number of nodes in the B+ tree: " << numberOfNodes << std::endl;
-    std::cout << "Number of levels in the B+ tree: " << numberOfLevels << std::endl;
-    std::cout << "Keys of the root node: ";
-    for (int key : rootKeys) {
-        std::cout << key << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "Running time of the deletion process: " << duration.count() << " millieconds." << std::endl;
-
-
+  // Display the statistics
+  std::cout << "Experiment 5 Statistics:" << std::endl;
+  std::cout << "Number of nodes in the B+ tree: " << numberOfNodes << std::endl;
+  std::cout << "Number of levels in the B+ tree: " << numberOfLevels << std::endl;
+  std::cout << "Keys of the root node: ";
+  for (int key : rootKeys)
+  {
+    std::cout << key << " ";
+  }
+  std::cout << std::endl;
+  std::cout << "Running time of the deletion process: " << duration.count() << " millieconds." << std::endl;
 }
 
 void BPlusTree::display()
 {
   // level order traversal
-  if (root == NULL) return;
+  if (root == NULL)
+    return;
   queue<Node *> q;
   q.push(root);
   int currentLevelNodes = 1;
