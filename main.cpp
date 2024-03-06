@@ -59,7 +59,7 @@ int main() {
                 break;
             case 4:
                 // Placeholder for Experiment 4
-                //bptree.experiment4(30000,40000);
+                bptree.experiment4(30000,40000);
                 break;
             case 5:
                 bptree.experiment5(1000);

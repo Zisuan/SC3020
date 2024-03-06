@@ -573,10 +573,71 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
   // Display statistics
   std::cout << "Experiment 3 Statistics:" << std::endl;
   std::cout << "Number of index nodes accessed: " << indexNodesAccessed << std::endl;
-  std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << std::endl;
+  //std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << std::endl;
+  std::cout << "Number of data blocks accessed: " << matchingRecordsCount << std::endl;
   std::cout << "Average rating of matching records: " << averageRating << std::endl;
   std::cout << "Running time of the retrieval process: " << duration.count() << " milliseconds." << std::endl;
 }
+
+void BPlusTree::experiment4(int minVotes, int maxVotes) {
+    int indexNodesAccessed = 0;
+    int dataBlocksAccessed = 0;
+    double totalRatings = 0.0;
+    int matchingRecordsCount = 0;
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Start with the root and traverse down to the first relevant leaf node
+    Node* current = root;
+    while (current != nullptr && !current->IS_LEAF) {
+        indexNodesAccessed++;
+        bool found = false;
+        for (int i = 0; i < current->size; i++) {
+            if (minVotes <= current->key[i]) {
+                current = current->ptr[i];
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            current = current->ptr[current->size];
+        }
+    }
+
+    // Now current points to the first relevant leaf or the leftmost leaf
+    while (current != nullptr) {
+        for (int i = 0; i < current->size; i++) {
+            if (current->key[i] >= minVotes && current->key[i] <= maxVotes) {
+                // Assuming the record structure is available here
+                // For each relevant record, accumulate ratings and count
+                Node* bufferNode = current->ptr[i];
+                while (bufferNode != nullptr) {
+                    for (int j = 0; j < bufferNode->size; j++) {
+                        Record* record = reinterpret_cast<Record*>(bufferNode->records[j]);
+                        totalRatings += record->averageRating;
+                        matchingRecordsCount++;
+                    }
+                    bufferNode = bufferNode->ptr[0]; // Move to the next buffer node
+                }
+                dataBlocksAccessed++;
+            }
+        }
+        if (current->key[current->size - 1] > maxVotes) break; // Stop if the last key is beyond the range
+        current = current->ptr[N]; // Move to the next leaf node
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end - start;
+
+    double averageRating = (matchingRecordsCount > 0) ? totalRatings / matchingRecordsCount : 0.0;
+
+    // Display the statistics
+    std::cout << "Experiment 4 Statistics:\n";
+    std::cout << "Number of index nodes accessed: " << indexNodesAccessed << "\n";
+    std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << "\n";
+    std::cout << "Average rating of matching records: " << averageRating << "\n";
+    std::cout << "Running time of the retrieval process: " << duration.count() << " milliseconds.\n";
+}
+
 
 // experiment 3 and 4 and re-formatted search functions
 void BPlusTree::search(int x)
