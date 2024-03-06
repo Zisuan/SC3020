@@ -47,7 +47,7 @@ public:
     void experiment2();
     void experiment5(int numVotesToDelete);
     void experiment3(int numVotes);
-    //void experiment4(int minVotes, int maxVotes);
+    void experiment4(int minVotes, int maxVotes);
 };
 
 #endif
