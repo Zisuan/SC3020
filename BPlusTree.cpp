@@ -4,7 +4,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "bplustree.h"
+#include "BPlusTree.h"
+#include "Record.h"
 #include <queue>
 #include <set>
 #include <chrono>
@@ -520,6 +521,61 @@ void BPlusTree::deleteInternal(int x, Node *curNode, Node *child)
       }
     }
   }
+}
+
+void BPlusTree::experiment3(int numVotes) {
+    search(numVotes);
+    auto start = std::chrono::high_resolution_clock::now();
+    int indexNodesAccessed = 0, dataBlocksAccessed = 0;
+    float totalRating = 0;
+    int matchingRecords = 0;
+
+    // Navigate to the leaf node that might contain the specified numVotes
+    Node* current = root;
+    while (!current->IS_LEAF) {
+        indexNodesAccessed++;
+        bool found = false;
+        for (int i = 0; i < current->size; i++) {
+            if (numVotes < current->key[i]) {
+                current = current->ptr[i];
+                found = true;
+                break;
+            }
+        }
+        if (!found) current = current->ptr[current->size];
+    }
+
+    // Now in the leaf nodes, look for records with the specified numVotes
+    while (current != nullptr) {
+        for (int i = 0; i < current->size; i++) {
+            if (current->key[i] == numVotes) {
+                dataBlocksAccessed++;
+
+                //construct a std::vector<unsigned char> from the raw data.
+                std::vector<unsigned char> buffer(current->records[i], current->records[i] + sizeof(Record));
+
+                // Deserialize the Record from current->records[i]
+                Record record = Record::deserializeRecord(buffer);
+                totalRating += record.averageRating;
+                matchingRecords++;
+            }
+        }
+        current = current->ptr[current->size]; // Traverse to the next leaf node if exists
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end - start;
+
+    // Reporting
+    std::cout << "Index Nodes Accessed: " << indexNodesAccessed << "\n";
+    std::cout << "Data Blocks Accessed: " << dataBlocksAccessed << "\n";
+    if (matchingRecords > 0) {
+        std::cout << "Average Rating of Matching Records: " << (totalRating / matchingRecords) << "\n";
+    } else {
+        std::cout << "No records found for numVotes = " << numVotes << "\n";
+    }
+    std::cout << "Retrieval Running Time: " << duration.count() << " milliseconds\n";
+    
 }
 
 //experiment 3 and 4 and re-formatted search functions

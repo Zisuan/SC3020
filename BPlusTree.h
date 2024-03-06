@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <cmath>
-#include "storage.h"
+#include "Storage.h"
 
 using namespace std;
 
@@ -46,6 +46,8 @@ public:
     void display();
     void experiment2();
     void experiment5(int numVotesToDelete);
+    void experiment3(int numVotes);
+    //void experiment4(int minVotes, int maxVotes);
 };
 
 #endif

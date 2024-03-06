@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <iomanip>
 #include "Record.h"
-#include "bplustree.h"
+#include "BPlusTree.h"
 
 // Constants
 extern const int BLOCK_SIZE;
