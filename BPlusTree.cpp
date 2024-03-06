@@ -573,8 +573,8 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
   // Display statistics
   std::cout << "Experiment 3 Statistics:" << std::endl;
   std::cout << "Number of index nodes accessed: " << indexNodesAccessed << std::endl;
-  //std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << std::endl;
-  std::cout << "Number of data blocks accessed: " << matchingRecordsCount << std::endl;
+  std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << std::endl;
+  std::cout << "Number of records: " << matchingRecordsCount << std::endl;
   std::cout << "Average rating of matching records: " << averageRating << std::endl;
   std::cout << "Running time of the retrieval process: " << duration.count() << " milliseconds." << std::endl;
 }
@@ -634,6 +634,7 @@ void BPlusTree::experiment4(int minVotes, int maxVotes) {
     std::cout << "Experiment 4 Statistics:\n";
     std::cout << "Number of index nodes accessed: " << indexNodesAccessed << "\n";
     std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << "\n";
+    std::cout << "Number of records: " << matchingRecordsCount << "\n";
     std::cout << "Average rating of matching records: " << averageRating << "\n";
     std::cout << "Running time of the retrieval process: " << duration.count() << " milliseconds.\n";
 }
