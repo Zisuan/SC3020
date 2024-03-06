@@ -528,8 +528,10 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
   int indexNodesAccessed = 0;
   int dataBlocksAccessed = 0;
   double totalRatings = 0.0;
+  int recordsAccessed = 0; // The number of records examined
   int matchingRecordsCount = 0;
-  auto start = std::chrono::high_resolution_clock::now();
+
+  auto targetedSearchStart = std::chrono::high_resolution_clock::now();
 
   // The traversal part is hypothetical and needs to be replaced with your actual traversal logic
   Node *current = root;
@@ -542,7 +544,7 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
   // Start iterating through leaf nodes
   while (current != nullptr)
   {
-    dataBlocksAccessed++; // Each leaf node is a data block access
+    dataBlocksAccessed++;
     for (int i = 0; i < current->size; i++)
     {
       if (current->key[i] == numVotesToRetrieve)
@@ -551,6 +553,8 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
         Node *bufferNode = current->ptr[i];
         while (bufferNode != nullptr)
         {
+          // Increment dataBlocksAccessed counter here as we inspect record data
+          recordsAccessed++; // Count each record in the buffer node
           // For each record in the buffer node, calculate statistics
           for (int j = 0; j < bufferNode->size; j++)
           {
@@ -565,18 +569,69 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
     current = current->ptr[N]; // Move to the next leaf node. Adjust this access according to your implementation
   }
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> duration = end - start;
+  auto targetedSearchEnd = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> targetedDuration = targetedSearchEnd - targetedSearchStart;
 
   double averageRating = matchingRecordsCount > 0 ? totalRatings / matchingRecordsCount : 0.0;
+  // Brute-force linear scan
+  int bruteForceDataBlocksAccessed = 0;
+  int bruteForceRecordsAccessed = 0;
+  double bruteForceTotalRatings = 0.0;
+  int bruteForceMatchingRecordsCount = 0;
+  auto bruteForceStart = std::chrono::high_resolution_clock::now();
 
-  // Display statistics
+  // Re-initialize traversal from the root to the leftmost leaf for a full scan
+  Node *bruteCurrent = root;
+  while (bruteCurrent != nullptr && !bruteCurrent->IS_LEAF)
+  {
+    bruteCurrent = bruteCurrent->ptr[0]; // Navigate to the leftmost leaf
+  }
+
+  // Start brute-force scan iterating through all leaf nodes
+  while (bruteCurrent != nullptr)
+  {
+    bruteForceDataBlocksAccessed++;
+    for (int i = 0; i < bruteCurrent->size; i++)
+    {
+      // Instead of checking the key, directly access all records
+      Node *bufferNode = bruteCurrent->ptr[i];
+      while (bufferNode != nullptr)
+      {
+        for (int j = 0; j < bufferNode->size; j++)
+        {
+          Record *record = reinterpret_cast<Record *>(bufferNode->records[j]);
+          // Count this as accessing a data block, since we're inspecting the record
+          bruteForceRecordsAccessed++; // Correctly count each inspected record
+          if (record->numVotes == numVotesToRetrieve)
+          {
+            bruteForceTotalRatings += record->averageRating;
+            bruteForceMatchingRecordsCount++;
+          }
+        }
+        bufferNode = bufferNode->ptr[0]; // Move to the next buffer node
+      }
+    }
+    bruteCurrent = bruteCurrent->ptr[N]; // Moving to the next leaf node
+  }
+
+  auto bruteForceEnd = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> bruteForceDuration = bruteForceEnd - bruteForceStart;
+
+  double bruteForceAverageRating = bruteForceMatchingRecordsCount > 0 ? bruteForceTotalRatings / bruteForceMatchingRecordsCount : 0.0;
+
   std::cout << "Experiment 3 Statistics:" << std::endl;
   std::cout << "Number of index nodes accessed: " << indexNodesAccessed << std::endl;
   std::cout << "Number of data blocks accessed: " << dataBlocksAccessed << std::endl;
-  std::cout << "Number of records: " << matchingRecordsCount << std::endl;
+  std::cout << "Number of records accessed: " << recordsAccessed << std::endl; //
   std::cout << "Average rating of matching records: " << averageRating << std::endl;
-  std::cout << "Running time of the retrieval process: " << duration.count() << " milliseconds." << std::endl;
+  std::cout << "Running time of the retrieval process: " << targetedDuration.count() << " milliseconds." << std::endl;
+
+  // Display statistics for brute-force scan
+  std::cout << "\nBrute-Force Scan Statistics:" << std::endl;
+  std::cout << "Number of data blocks accessed: " << bruteForceDataBlocksAccessed << std::endl;
+  std::cout << "Number of records accessed: " << bruteForceRecordsAccessed << std::endl; //
+  std::cout << "Average rating of matching records: " << bruteForceAverageRating << std::endl;
+  std::cout << "Running time of the brute-force scan process: " << bruteForceDuration.count() << " milliseconds." << std::endl;
 }
 
 void BPlusTree::experiment4(int minVotes, int maxVotes) {
