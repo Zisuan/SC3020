@@ -247,282 +247,6 @@ void BPlusTree::insertInternal(int x, Node *parent, Node *child)
   }
 }
 
-void BPlusTree::deleteKey(int x)
-{
-  if (root == NULL)
-    return;
-  Node *curNode = root;
-  Node *parent;
-  int leftPtrIndex, rightPtrIndex;
-  int index = -1;
-  while (curNode->IS_LEAF == false)
-  {
-    for (int i = 0; i < curNode->size; i++)
-    {
-      parent = curNode;
-      if (x < curNode->key[i])
-      {
-        curNode = curNode->ptr[i];
-        index = i;
-        break;
-      }
-    }
-    if (index == -1)
-    {
-      index = curNode->size;
-      curNode = curNode->ptr[curNode->size];
-    }
-    if (curNode->IS_LEAF)
-    {
-      leftPtrIndex = index - 1;
-      rightPtrIndex = index + 1;
-    }
-    index = -1;
-  }
-  for (int i = 0; i < curNode->size; i++)
-  {
-    if (curNode->key[i] == x)
-    {
-      do
-      {
-        for (int j = i; j < curNode->size - 1; j++)
-        {
-          curNode->key[j] = curNode->key[j + 1];
-          curNode->ptr[j] = curNode->ptr[j + 1];
-          this->deleteCounter++;
-        }
-        curNode->size--;
-        curNode->key[curNode->size] = 0;
-        curNode->ptr[curNode->size] = NULL;
-        i = 0; // Reset i to search from the beginning
-      } while (curNode->key[i] == x && i < curNode->size);
-
-      // if leafnode has less than minimum size and is not the root node
-      // then we have to update parent node
-      if (curNode->size < (N + 1) / 2 && curNode != root)
-      {
-        // check left leafnode to take a key
-        int chosenIndex = -1;
-        if (leftPtrIndex >= 0 && parent->ptr[leftPtrIndex]->size > (N + 1) / 2)
-          chosenIndex = leftPtrIndex;
-        else if (rightPtrIndex <= parent->size && parent->ptr[rightPtrIndex]->size > (N + 1) / 2)
-          chosenIndex = rightPtrIndex;
-
-        // there is a left or right node with excess keys
-        if (chosenIndex == leftPtrIndex)
-        {
-          // make space for new key for curNode
-          for (int i = curNode->size; i > 0; i--)
-          {
-            curNode->key[i] = curNode->key[i - 1];
-            curNode->ptr[i] = curNode->ptr[i - 1];
-          }
-          curNode->size++;
-          // add the taken key to curNode
-          curNode->key[0] = parent->ptr[leftPtrIndex]->key[parent->ptr[leftPtrIndex]->size - 1];
-          curNode->ptr[0] = parent->ptr[leftPtrIndex]->ptr[parent->ptr[leftPtrIndex]->size - 1];
-          // remove the taken key from left node
-          parent->ptr[leftPtrIndex]->ptr[parent->ptr[leftPtrIndex]->size - 1] = NULL;
-          parent->ptr[leftPtrIndex]->key[parent->ptr[leftPtrIndex]->size - 1] = 0;
-          parent->ptr[leftPtrIndex]->size--;
-          // update the parent key to new curNode->key[0]
-          parent->key[leftPtrIndex] = curNode->key[0];
-        }
-        else if (chosenIndex == rightPtrIndex)
-        {
-          // add the taken key to curNode
-          curNode->ptr[curNode->size] = parent->ptr[rightPtrIndex]->ptr[0];
-          curNode->key[curNode->size] = parent->ptr[rightPtrIndex]->key[0];
-          curNode->size++;
-          parent->ptr[rightPtrIndex]->size--;
-          // remove the taken key from right Node
-          for (int i = 0; i < parent->ptr[rightPtrIndex]->size; i++)
-          {
-            parent->ptr[rightPtrIndex]->key[i] = parent->ptr[rightPtrIndex]->key[i + 1];
-            parent->ptr[rightPtrIndex]->ptr[i] = parent->ptr[rightPtrIndex]->ptr[i + 1];
-          }
-          parent->ptr[rightPtrIndex]->key[parent->ptr[rightPtrIndex]->size] = 0;
-          parent->ptr[rightPtrIndex]->ptr[parent->ptr[rightPtrIndex]->size] = NULL;
-          parent->key[rightPtrIndex - 1] = parent->ptr[rightPtrIndex]->key[0];
-        }
-        else
-        {
-          // merge can definitely happen since both left and right have minimum nodes
-          if (leftPtrIndex >= 0)
-            chosenIndex = leftPtrIndex;
-          else if (rightPtrIndex <= parent->size)
-            chosenIndex = rightPtrIndex;
-          if (chosenIndex == -1)
-            cout << "This should not happen" << endl;
-          // merge with left
-          if (chosenIndex == leftPtrIndex)
-          {
-            for (int i = parent->ptr[leftPtrIndex]->size, j = 0; j < curNode->size; i++, j++)
-            {
-              parent->ptr[leftPtrIndex]->key[i] = curNode->key[j];
-              parent->ptr[leftPtrIndex]->ptr[i] = curNode->ptr[j];
-            }
-            parent->ptr[leftPtrIndex]->size += curNode->size;
-            parent->ptr[leftPtrIndex]->ptr[N] = curNode->ptr[N];
-            deleteInternal(parent->key[leftPtrIndex], parent, curNode);
-          }
-          // merge with right
-          else
-          {
-            for (int i = curNode->size, j = 0; j < parent->ptr[rightPtrIndex]->size; i++, j++)
-            {
-              curNode->key[i] = parent->ptr[rightPtrIndex]->key[j];
-              curNode->ptr[i] = parent->ptr[rightPtrIndex]->ptr[j];
-            }
-            curNode->size += parent->ptr[rightPtrIndex]->size;
-            curNode->ptr[N] = parent->ptr[rightPtrIndex]->ptr[N];
-            // cout << "Merging two leaf nodes\n";
-            curNode = parent->ptr[rightPtrIndex];
-            deleteInternal(parent->key[rightPtrIndex - 1], parent, parent->ptr[rightPtrIndex]);
-          }
-          deallocate(curNode);
-          this->nodes--;
-        }
-      }
-      cout << "Successfully deleted key" << endl;
-      return;
-    }
-  }
-  cout << "Key was not found" << endl;
-}
-
-void BPlusTree::deleteInternal(int x, Node *curNode, Node *child)
-{
-  // there is only 2 pointers
-  // deleting the child means the other remaining child becomes the rootnode
-  if (curNode == root && curNode->size == 1)
-  {
-    for (int i = 0; i < 2; i++)
-    {
-      if (curNode->ptr[i] == child)
-      {
-        root = curNode->ptr[!i];
-        deallocate(curNode);
-        cout << "Changed root node\n";
-        return;
-      }
-    }
-  }
-  int index;
-  for (int i = 0; i < curNode->size; i++)
-  {
-    if (curNode->key[i] == x)
-    {
-      index = i;
-      break;
-    }
-  }
-  for (int i = index; i < curNode->size - 1; i++)
-  {
-    curNode->key[i] = curNode->key[i + 1];
-    curNode->ptr[i + 1] = curNode->ptr[i + 2];
-  }
-  curNode->key[curNode->size - 1] = 0;
-  curNode->ptr[curNode->size] = NULL;
-  curNode->size--;
-  if (curNode->size < N / 2 && curNode != root)
-  {
-    Node *parent = findParent(root, curNode);
-    int leftPtrIndex, rightPtrIndex;
-    for (int i = 0; i < parent->size + 1; i++)
-    {
-      if (parent->ptr[i] == curNode)
-      {
-        index = i;
-        leftPtrIndex = index - 1;
-        rightPtrIndex = index + 1;
-        break;
-      }
-    }
-    int chosenIndex = -1;
-    if (leftPtrIndex >= 0 && parent->ptr[leftPtrIndex]->size > N / 2)
-      chosenIndex = leftPtrIndex;
-    else if (rightPtrIndex <= parent->size && parent->ptr[rightPtrIndex]->size > N / 2)
-      chosenIndex = rightPtrIndex;
-
-    if (chosenIndex == leftPtrIndex)
-    {
-      curNode->ptr[curNode->size + 1] = curNode->ptr[curNode->size];
-      for (int i = curNode->size; i > 0; i--)
-      {
-        curNode->key[i] = curNode->key[i - 1];
-        curNode->ptr[i] = curNode->ptr[i - 1];
-      }
-      curNode->key[0] = parent->key[leftPtrIndex];
-      curNode->ptr[0] = parent->ptr[leftPtrIndex]->ptr[parent->ptr[leftPtrIndex]->size];
-      curNode->size++;
-      parent->ptr[leftPtrIndex]->size--;
-      parent->key[leftPtrIndex] = curNode->key[0];
-    }
-    else if (chosenIndex == rightPtrIndex)
-    {
-      curNode->key[curNode->size] = parent->key[index];
-      parent->key[index] = parent->ptr[rightPtrIndex]->key[0];
-      for (int i = 0; i < parent->ptr[rightPtrIndex]->size - 1; i++)
-      {
-        parent->ptr[rightPtrIndex]->key[i] = parent->ptr[rightPtrIndex]->key[i + 1];
-      }
-      curNode->ptr[curNode->size + 1] = parent->ptr[rightPtrIndex]->ptr[0];
-      for (int i = 0; i < parent->ptr[rightPtrIndex]->size; ++i)
-      {
-        parent->ptr[rightPtrIndex]->ptr[i] = parent->ptr[rightPtrIndex]->ptr[i + 1];
-      }
-      curNode->size++;
-      parent->ptr[rightPtrIndex]->size--;
-    }
-    else
-    {
-      // merge can definitely happen since both left and right have minimum nodes
-      if (leftPtrIndex >= 0)
-        chosenIndex = leftPtrIndex;
-      else if (rightPtrIndex <= parent->size)
-        chosenIndex = rightPtrIndex;
-      if (chosenIndex == -1)
-        cout << "This should not happen" << endl;
-      // merge with left
-      if (chosenIndex == leftPtrIndex)
-      {
-        // update left node key
-        parent->ptr[leftPtrIndex]->key[parent->ptr[leftPtrIndex]->size] = parent->key[leftPtrIndex];
-        for (int i = parent->ptr[leftPtrIndex]->size + 1, j = 0; j < curNode->size; j++)
-        {
-          parent->ptr[leftPtrIndex]->key[i] = curNode->key[j];
-        }
-        for (int i = parent->ptr[leftPtrIndex]->size + 1, j = 0; j < curNode->size + 1; j++)
-        {
-          parent->ptr[leftPtrIndex]->ptr[i] = curNode->ptr[j];
-          curNode->ptr[j] = NULL;
-        }
-        parent->ptr[leftPtrIndex]->size += curNode->size + 1;
-        curNode->size = 0;
-        deleteInternal(parent->key[leftPtrIndex], parent, curNode);
-        deallocate(curNode);
-      }
-      else
-      {
-        curNode->key[curNode->size] = parent->key[rightPtrIndex - 1];
-        for (int i = curNode->size + 1, j = 0; j < parent->ptr[rightPtrIndex]->size; j++)
-        {
-          curNode->key[i] = parent->ptr[rightPtrIndex]->key[j];
-        }
-        for (int i = curNode->size + 1, j = 0; j < parent->ptr[rightPtrIndex]->size + 1; j++)
-        {
-          curNode->ptr[i] = parent->ptr[rightPtrIndex]->ptr[j];
-          parent->ptr[rightPtrIndex]->ptr[j] = NULL;
-        }
-        curNode->size += parent->ptr[rightPtrIndex]->size + 1;
-        parent->ptr[rightPtrIndex]->size = 0;
-        deleteInternal(parent->key[rightPtrIndex - 1], parent, parent->ptr[rightPtrIndex]);
-        deallocate(parent->ptr[rightPtrIndex]);
-      }
-    }
-  }
-}
 void BPlusTree::experiment3(int numVotesToRetrieve)
 {
   int indexNodesAccessed = 0;
@@ -916,14 +640,6 @@ void BPlusTree::display()
   }
 }
 
-// helper functions
-void BPlusTree::deallocate(Node *node)
-{
-  delete[] node->key;
-  delete[] node->ptr;
-  delete node;
-}
-
 Node *BPlusTree::createNewLeafNode(int x, unsigned char *record)
 {
   Node *node = new Node;
@@ -990,4 +706,210 @@ Node *BPlusTree::findParent(Node *curNode, Node *child)
     }
   }
   return NULL;
+}
+
+void BPlusTree::deleteKey(int x) {
+    if (root == NULL)
+        return;
+
+    Node *curNode = root, *parent = nullptr;
+    int leftPtrIndex, rightPtrIndex;
+    int index = -1;
+    while (!curNode->IS_LEAF) {
+        index = -1;
+        for (int i = 0; i < curNode->size; i++) {
+            parent = curNode;
+            if (x < curNode->key[i]) {
+                curNode = curNode->ptr[i];
+                index = i;
+                break;
+            }
+        }
+        if (index == -1) {
+            index = curNode->size;
+            curNode = curNode->ptr[curNode->size];
+        }
+        leftPtrIndex = index - 1;
+        rightPtrIndex = index;
+    }
+
+    bool found = false;
+    for (int i = 0; i < curNode->size; i++) {
+        if (curNode->key[i] == x) {
+            for (int j = i; j < curNode->size - 1; j++) {
+                curNode->key[j] = curNode->key[j + 1];
+                curNode->ptr[j] = curNode->ptr[j + 1];
+            }
+            curNode->size--;
+            this->deleteCounter++;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        cout << "Key not found" << endl;
+        return;
+    }
+
+    // Handle underflow in the leaf node
+    if (curNode->size < (N + 1) / 2 && curNode != root) {
+        Node *leftSibling = (leftPtrIndex >= 0) ? parent->ptr[leftPtrIndex] : nullptr;
+        Node *rightSibling = (rightPtrIndex < parent->size) ? parent->ptr[rightPtrIndex] : nullptr;
+
+        if (leftSibling && leftSibling->size > (N + 1) / 2) {
+            // Borrow from left sibling
+            for (int i = curNode->size; i > 0; i--) {
+                curNode->key[i] = curNode->key[i - 1];
+                curNode->ptr[i] = curNode->ptr[i - 1];
+            }
+            curNode->key[0] = leftSibling->key[leftSibling->size - 1];
+            curNode->ptr[0] = leftSibling->ptr[leftSibling->size - 1];
+            curNode->size++;
+            leftSibling->size--;
+            parent->key[leftPtrIndex] = curNode->key[0];
+        } else if (rightSibling && rightSibling->size > (N + 1) / 2) {
+            // Borrow from right sibling
+            curNode->key[curNode->size] = rightSibling->key[0];
+            curNode->ptr[curNode->size] = rightSibling->ptr[0];
+            curNode->size++;
+            for (int i = 0; i < rightSibling->size - 1; i++) {
+                rightSibling->key[i] = rightSibling->key[i + 1];
+                rightSibling->ptr[i] = rightSibling->ptr[i + 1];
+            }
+            rightSibling->size--;
+            parent->key[rightPtrIndex - 1] = rightSibling->key[0];
+        } else {
+            // Merge with a sibling
+            if (leftSibling) {
+                // Merge curNode with leftSibling
+                for (int i = leftSibling->size, j = 0; j < curNode->size; i++, j++) {
+                    leftSibling->key[i] = curNode->key[j];
+                    leftSibling->ptr[i] = curNode->ptr[j];
+                }
+                leftSibling->size += curNode->size;
+                deleteInternal(parent->key[leftPtrIndex], parent, curNode);
+                deallocate(curNode); // Assuming deallocate properly frees the node
+            } else if (rightSibling) {
+                // Merge curNode into rightSibling
+                for (int i = curNode->size, j = 0; j < rightSibling->size; i++, j++) {
+                    curNode->key[i] = rightSibling->key[j];
+                    curNode->ptr[i] = rightSibling->ptr[j];
+                }
+                curNode->size += rightSibling->size;
+                deleteInternal(parent->key[rightPtrIndex], parent, rightSibling);
+                deallocate(rightSibling); // Assuming deallocate properly frees the node
+            }
+        }
+    }
+
+    cout << "Deleted key Successfully" << endl;
+}
+
+
+void BPlusTree::deleteInternal(int x, Node* curNode, Node* child) {
+    if (curNode == root && curNode->size == 1) {
+        root = (curNode->ptr[0] == child) ? curNode->ptr[1] : curNode->ptr[0];
+        deallocate(curNode);
+        cout << "Changed root node\n";
+        return;
+    }
+
+    int index = -1;
+    for (int i = 0; i < curNode->size; i++) {
+        if (curNode->key[i] == x) {
+            index = i;
+            break;
+        }
+    }
+
+    // Shift keys and pointers left to delete the key and its right child pointer
+    for (int i = index; i < curNode->size - 1; i++) {
+        curNode->key[i] = curNode->key[i + 1];
+        curNode->ptr[i + 1] = curNode->ptr[i + 2];
+    }
+    curNode->size--;
+
+    if (curNode->size < N / 2 && curNode != root) {
+        Node *parent = findParent(root, curNode);
+        int leftPtrIndex = -1, rightPtrIndex = -1;
+
+        for (int i = 0; i <= parent->size; i++) {
+            if (parent->ptr[i] == curNode) {
+                leftPtrIndex = i - 1;
+                rightPtrIndex = i + 1;
+                break;
+            }
+        }
+
+        Node* leftSibling = leftPtrIndex >= 0 ? parent->ptr[leftPtrIndex] : nullptr;
+        Node* rightSibling = rightPtrIndex <= parent->size ? parent->ptr[rightPtrIndex] : nullptr;
+
+        if (leftSibling && leftSibling->size > N / 2) {
+            for (int i = curNode->size; i > 0; i--) {
+                curNode->key[i] = curNode->key[i - 1];
+                curNode->ptr[i] = curNode->ptr[i - 1];
+            }
+            curNode->key[0] = parent->key[leftPtrIndex];
+            curNode->ptr[0] = leftSibling->ptr[leftSibling->size];
+            curNode->size++;
+            leftSibling->size--;
+            parent->key[leftPtrIndex] = leftSibling->key[leftSibling->size];
+        } else if (rightSibling && rightSibling->size > N / 2) {
+            curNode->key[curNode->size] = parent->key[rightPtrIndex - 1];
+            curNode->ptr[curNode->size + 1] = rightSibling->ptr[0];
+            curNode->size++;
+            for (int i = 0; i < rightSibling->size - 1; i++) {
+                rightSibling->key[i] = rightSibling->key[i + 1];
+                rightSibling->ptr[i] = rightSibling->ptr[i + 1];
+            }
+            rightSibling->size--;
+            parent->key[rightPtrIndex - 1] = rightSibling->key[0];
+        } else {
+            if (leftSibling) {
+                // Merge curNode with leftSibling
+                leftSibling->key[leftSibling->size] = parent->key[leftPtrIndex];
+                for (int i = leftSibling->size + 1, j = 0; j < curNode->size; i++, j++) {
+                    leftSibling->key[i] = curNode->key[j];
+                    leftSibling->ptr[i] = curNode->ptr[j];
+                }
+                leftSibling->size += curNode->size + 1;
+                // Adjust parent
+                for (int i = leftPtrIndex; i < parent->size - 1; i++) {
+                    parent->key[i] = parent->key[i + 1];
+                    parent->ptr[i + 1] = parent->ptr[i + 2];
+                }
+                parent->size--;
+                deallocate(curNode);
+            } else if (rightSibling) {
+                // Merge curNode into rightSibling
+                curNode->key[curNode->size] = parent->key[rightPtrIndex - 1];
+                for (int i = curNode->size + 1, j = 0; j < rightSibling->size; i++, j++) {
+                    curNode->key[i] = rightSibling->key[j];
+                    curNode->ptr[i] = rightSibling->ptr[j];
+                }
+                curNode->size += rightSibling->size + 1;
+                // Adjust parent
+                for (int i = rightPtrIndex - 1; i < parent->size - 1; i++) {
+                    parent->key[i] = parent->key[i + 1];
+                    parent->ptr[i + 1] = parent->ptr[i + 2];
+                }
+                parent->size--;
+                deallocate(rightSibling);
+            }
+            // If parent is now underflowed and not the root, recurse
+            if (parent->size < N / 2 && parent != root) {
+                Node* grandparent = findParent(root, parent);
+                deleteInternal(parent->key[0], grandparent, parent); // Use the first key as an example; adjust based on your deletion policy
+            }
+        }
+    }
+}
+
+// helper functions
+void BPlusTree::deallocate(Node *node)
+{
+  delete[] node->key;
+  delete[] node->ptr;
+  delete node;
 }
