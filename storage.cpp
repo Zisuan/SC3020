@@ -1,7 +1,6 @@
 #include "Storage.h"
 
-// If BLOCK_SIZE and DISK_CAPACITY are defined in another file and marked as 'extern' in Storage.h,
-// you don't need to define them again here unless this is the file where you want to set their values.
+
 const int BLOCK_SIZE = 200;
 const size_t DISK_CAPACITY = 100 * 1024 * 1024;
 
@@ -147,7 +146,6 @@ void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk) {
 void SimulatedDisk::loadBPlusTree(BPlusTree& tree) {
     for (auto& block : blocks) {
         for (auto& record : block.records) {
-            // Assuming you have a way to get a pointer to the record
             unsigned char* recordPtr = reinterpret_cast<unsigned char*>(&record);
             tree.insertKey(record.numVotes, recordPtr);
         }

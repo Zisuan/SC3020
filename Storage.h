@@ -55,7 +55,7 @@ public:
     size_t totalBlocks() const;
     size_t totalRecords() const;
     size_t usedCapacity() const;
-    void loadBPlusTree(BPlusTree& tree); // Declare the function here
+    void loadBPlusTree(BPlusTree& tree); 
 };
 
 

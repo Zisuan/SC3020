@@ -6,9 +6,9 @@
 #include <cstring>
 
 struct Record {
-    char tconst[10];     // IMDb identifier, ensure it's null-terminated
-    float averageRating; // Movie rating
-    int numVotes;        // Number of votes
+    char tconst[10];     // 9 chars for the ID + 1 for null terminator
+    float averageRating; // 4 bytes for the floating point
+    int numVotes;        // 4 bytes for the integer
 
     Record() = default;
 
