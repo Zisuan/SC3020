@@ -131,70 +131,58 @@ void BPlusTree::createNewRoot(Node* leftChild, Node* rightChild) {
   ++levels;
 }
 
-void BPlusTree::insertInternal(int x, Node *parent, Node *child)
-{
-  if (parent->size < N)
-  {
-    int insertIndex = 0;
-    while (x > parent->key[insertIndex] && insertIndex < parent->size)
-    {
-      insertIndex++;
+void BPlusTree::insertInternal(int x, Node *parent, Node *child) {
+    if (parent->size < N) {
+        int pos = 0;
+        while (x > parent->key[pos] && pos < parent->size) {
+            pos++;
+        }
+        for (int j = parent->size; j > pos; j--) {
+            parent->key[j] = parent->key[j - 1];
+            parent->ptr[j + 1] = parent->ptr[j];
+        }
+        parent->key[pos] = x;
+        parent->ptr[pos + 1] = child;
+        parent->size++;
+    } else {
+        this->nodes++;
+        Node *splitNode = new Node();
+        int tempKeys[N + 1];
+        Node *tempPointers[N + 2];
+        memcpy(tempKeys, parent->key, N * sizeof(int));
+        memcpy(tempPointers, parent->ptr, (N + 1) * sizeof(Node *));
+        tempPointers[N] = parent->ptr[N];
+        int idx = 0;
+        while (x > tempKeys[idx] && idx < N) {
+            idx++;
+        }
+        for (int k = N; k > idx; k--) {
+            tempKeys[k] = tempKeys[k - 1];
+        }
+        tempKeys[idx] = x;
+        for (int l = N + 1; l > idx; l--) {
+            tempPointers[l] = tempPointers[l - 1];
+        }
+        tempPointers[idx + 1] = child;
+        splitNode->IS_LEAF = false;
+        parent->size = (N + 1) / 2;
+        splitNode->size = N - parent->size;
+        memcpy(splitNode->key, tempKeys + parent->size + 1, splitNode->size * sizeof(int));
+        memcpy(splitNode->ptr, tempPointers + parent->size + 1, (splitNode->size + 1) * sizeof(Node *));
+        if (parent == root) {
+            this->nodes++;
+            this->levels++;
+            Node *newRoot = new Node();
+            newRoot->key[0] = parent->key[parent->size];
+            newRoot->ptr[0] = parent;
+            newRoot->ptr[1] = splitNode;
+            newRoot->IS_LEAF = false;
+            newRoot->size = 1;
+            root = newRoot;
+        } else {
+            insertInternal(parent->key[parent->size], findParent(root, parent), splitNode);
+        }
     }
-    for (int i = parent->size; i > insertIndex; i--)
-    {
-      std::memcpy(parent->key + i, parent->key + i - 1, sizeof(int));
-      std::memcpy(parent->ptr + i + 1, parent->ptr + i, sizeof(Node *));
-    }
-    parent->key[insertIndex] = x;
-    parent->ptr[insertIndex + 1] = child;
-    parent->size++;
-  }
-  else
-  {
-    this->nodes++;
-    Node *newInternalNode = new Node();
-    int tempKey[N + 1];
-    Node *tempPtr[N + 2];
-    std::memcpy(tempKey, parent->key, N * sizeof(int));
-    std::memcpy(tempPtr, parent->ptr, (N + 1) * sizeof(Node *));
-    tempPtr[N] = parent->ptr[N];
-    int insertIndex = 0;
-    while (x > tempKey[insertIndex] && insertIndex < N)
-    {
-      insertIndex++;
-    }
-    for (int i = N; i > insertIndex; i--)
-    {
-      std::memcpy(tempKey + i, tempKey + i - 1, sizeof(int));
-    }
-    tempKey[insertIndex] = x;
-    for (int i = N + 1; i > insertIndex; i--)
-    {
-      std::memcpy(tempPtr + i, tempPtr + i - 1, sizeof(Node *));
-    }
-    tempPtr[insertIndex + 1] = child;
-    newInternalNode->IS_LEAF = false;
-    parent->size = (N + 1) / 2;
-    newInternalNode->size = N - parent->size;
-    std::memcpy(newInternalNode->key, tempKey + parent->size + 1, newInternalNode->size * sizeof(int));
-    std::memcpy(newInternalNode->ptr, tempPtr + parent->size + 1, (newInternalNode->size + 1) * sizeof(Node *));
-    if (parent == root)
-    {
-      this->nodes++;
-      this->levels++;
-      Node *newRootNode = new Node();
-      newRootNode->key[0] = parent->key[parent->size];
-      newRootNode->ptr[0] = parent;
-      newRootNode->ptr[1] = newInternalNode;
-      newRootNode->IS_LEAF = false;
-      newRootNode->size = 1;
-      root = newRootNode;
-    }
-    else
-    {
-      insertInternal(parent->key[parent->size], findParent(root, parent), newInternalNode);
-    }
-  }
 }
 
 void BPlusTree::experiment3(int numVotesToRetrieve)
@@ -487,32 +475,29 @@ void BPlusTree::experiment2()
 void BPlusTree::experiment5(int numVotesToDelete)
 {
   int bruteForceBlocksAccessed = 0;
-  int totalCount = 0; // To count the number of records with numVotesToDelete
+  int totalCount = 0;
   auto bfStart = std::chrono::high_resolution_clock::now();
   Node *current = root;
-  // Traverse to the leftmost leaf node
   while (current != NULL && !current->IS_LEAF)
   {
     current = current->ptr[0];
   }
-  // Now iterate through all leaf nodes and their keys
   while (current != NULL)
   {
-    bruteForceBlocksAccessed++; // Counting each leaf node as a block accessed
+    bruteForceBlocksAccessed++;
     for (int i = 0; i < current->size; i++)
     {
       if (current->key[i] == numVotesToDelete)
       {
-        // Traverse through buffer nodes if the key matches
         Node *bufferNode = current->ptr[i];
         while (bufferNode != NULL)
         {
-          totalCount += bufferNode->size;  // Assuming each buffer node contains records for the matching key
-          bufferNode = bufferNode->ptr[0]; // Move to the next buffer node
+          totalCount += bufferNode->size;
+          bufferNode = bufferNode->ptr[0];
         }
       }
     }
-    current = current->ptr[N]; // Moving to the next leaf node
+    current = current->ptr[N];
   }
   auto bfEnd = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> bfDuration = bfEnd - bfStart;
@@ -522,16 +507,14 @@ void BPlusTree::experiment5(int numVotesToDelete)
   std::cout << "Brute-force scan running time: " << bfDuration.count() << " milliseconds." << std::endl;
 
   auto start = std::chrono::high_resolution_clock::now();
-  // Traverse through the tree and delete keys with numVotes = 1,000
   deleteKey(numVotesToDelete);
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end - start;
   duration = duration * 1000;
-  // After deletion, we calculate the statistics
-  int numberOfNodes = this->nodes;   // Total number of nodes after deletion
-  int numberOfLevels = this->levels; // Total number of levels after deletion
-  std::vector<int> rootKeys;         // Keys of the root node after deletion
+  int numberOfNodes = this->nodes;
+  int numberOfLevels = this->levels;
+  std::vector<int> rootKeys;
   if (root != NULL)
   {
     for (int i = 0; i < root->size; i++)
