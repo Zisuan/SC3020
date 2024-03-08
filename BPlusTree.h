@@ -11,31 +11,33 @@
 
 using namespace std;
 
+extern const int N; // Indicate that N is defined elsewhere
+
 class Node {
 public:
     bool IS_LEAF; //2bytes
-    int *key; //4N bytes
-    int size; //4bytes
-    Node **ptr;//8(N+1) bytes
+    int *key; // Pointer to an array of keys
+    int size; //4bytes, the number of keys in the node
+    Node **ptr; // Pointers to child nodes
+    unsigned char **records; // Pointers to data records, for leaf nodes
 
-    // to point to records
-    unsigned char **records;//8N bytes
     Node();
 };
 
 class BPlusTree {
+    Node *root = NULL; //root node
+    
     int nodes = 0;
     int levels = 0;
     int numKeys = 0;
-    Node *root = NULL; //root node
     int deleteCounter = 0; // Keep track of deleted numVotes = 1000
     
     void insertInternal(int x, Node *parent, Node *child);
     void deleteInternal(int x, Node *curNode, Node *child);
-    Node *findParent(Node* curNode, Node *child);
-    Node* createNewLeafNode(int x, unsigned char *record);
-    Node* createNewBufferNode(int x, unsigned char *record);
-    Node** traverseToLeafNode(int x);
+    Node *findParent(Node* currentNode, Node* targetChild);
+    Node* createNewLeafNode(int key, unsigned char *data);
+    Node* createNewBufferNode(int key, unsigned char *data);
+    Node** traverseToLeafNode(int targetKey);
     void deallocate(Node *node);
 
 public:

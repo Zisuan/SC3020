@@ -640,72 +640,92 @@ void BPlusTree::display()
   }
 }
 
-Node *BPlusTree::createNewLeafNode(int x, unsigned char *record)
-{
-  Node *node = new Node;
-  node->key[0] = x;
-  // node->records[0] = record;
-  node->IS_LEAF = true;
-  node->size = 1;
+Node* BPlusTree::createNewLeafNode(int key, unsigned char* data) {
+    Node* leafNode = new Node(); // Ensure Node's constructor initializes arrays dynamically based on N.
+    if (!leafNode) {
+        // Handle allocation failure if applicable in your environment. Typically, new throws, so this is more illustrative.
+        std::cerr << "Memory allocation for new leaf node failed." << std::endl;
+        return nullptr;
+    }
 
-  node->ptr[0] = createNewBufferNode(x, record);
-  node->ptr[N] = NULL;
-  return node;
+    leafNode->key[0] = key;
+    leafNode->IS_LEAF = true;
+    leafNode->size = 1;
+    leafNode->ptr[0] = createNewBufferNode(key, data); // Link to buffer node containing the record
+    leafNode->ptr[N] = nullptr; // Rightmost pointer in a leaf node is always null
+
+    return leafNode;
 }
 
-Node *BPlusTree::createNewBufferNode(int x, unsigned char *record)
-{
-  Node *node = new Node;
-  node->records[0] = record;
-  node->size = 1;
-  node->key[0] = x;
-  node->ptr[0] = NULL;
-  return node;
+Node* BPlusTree::createNewBufferNode(int key, unsigned char* data) {
+    Node* bufferNode = new Node(); // Assume Node's constructor handles array initialization.
+    if (!bufferNode) {
+        // Similar illustrative error handling for memory allocation failure.
+        std::cerr << "Memory allocation for new buffer node failed." << std::endl;
+        return nullptr;
+    }
+
+    bufferNode->records[0] = data;
+    bufferNode->size = 1;
+    bufferNode->key[0] = key;
+    bufferNode->ptr[0] = nullptr; // Buffer nodes do not point to other nodes.
+
+    return bufferNode;
 }
 
 // returns [Node* parentOfLeafNode, Node *leafNode]
-Node **BPlusTree::traverseToLeafNode(int x)
-{
-  Node **parent_child = new Node *[2];
-  parent_child[1] = root;
-  // To travel to the leaf node
-  while (parent_child[1]->IS_LEAF == false)
-  {
-    parent_child[0] = parent_child[1];
-    for (int i = 0; i < parent_child[1]->size; i++)
-    {
-      if (x < parent_child[1]->key[i])
-      {
-        parent_child[1] = parent_child[1]->ptr[i];
-        break;
-      }
+Node **BPlusTree::traverseToLeafNode(int targetKey) {
+    Node **path = new Node *[2]; // Array to hold the parent and child nodes on the path to the targetKey
+    path[1] = root; // Start with the root as the current node (child in the context of the first iteration)
+
+    // Traverse down to the leaf node
+    while (!path[1]->IS_LEAF) {
+        path[0] = path[1]; // Update the parent node
+        bool foundLesserKey = false; // Flag to check if a lesser key is found
+
+        // Search for the first key greater than targetKey
+        for (int i = 0; i < path[1]->size; i++) {
+            if (targetKey < path[1]->key[i]) {
+                path[1] = path[1]->ptr[i]; // Move to the appropriate child node
+                foundLesserKey = true;
+                break; // Exit the loop as the correct child node is found
+            }
+        }
+
+        // If targetKey is greater than all keys, move to the rightmost child
+        if (!foundLesserKey) {
+            path[1] = path[1]->ptr[path[1]->size];
+        }
     }
-    if (parent_child[0] == parent_child[1])
-      parent_child[1] = parent_child[1]->ptr[parent_child[1]->size];
-  }
-  return parent_child;
+    // At this point, path[1] is the leaf node where targetKey should be located, and path[0] is its parent
+    return path;
 }
 
-Node *BPlusTree::findParent(Node *curNode, Node *child)
-{
-  // ignore first and second level as child is at least second level
-  // so the parent must at least be third level
-  if (curNode->IS_LEAF || (curNode->ptr[0]->IS_LEAF))
-    return NULL;
-  for (int i = 0; i < curNode->size + 1; i++)
-  {
-    // found direct parent
-    if (curNode->ptr[i] == child)
-      return curNode;
-    // check child of curNode to be parent of child
-    else
-    {
-      Node *parent = findParent(curNode->ptr[i], child);
-      if (parent != NULL)
-        return parent;
+Node* BPlusTree::findParent(Node* currentNode, Node* targetChild) {
+    // Base condition to stop if currentNode is a leaf or its children are leaves
+    if (currentNode->IS_LEAF || (currentNode->ptr[0]->IS_LEAF)) {
+        return NULL;
     }
-  }
-  return NULL;
+
+    int childIndex = 0; // Initialize index to iterate through child pointers
+    while (childIndex < currentNode->size + 1) {
+        if (currentNode->ptr[childIndex] == targetChild) {
+            // If the direct child is the target, currentNode is the parent
+            return currentNode;
+        }
+
+        // If not directly found, search recursively in the subtree
+        Node* foundParent = findParent(currentNode->ptr[childIndex], targetChild);
+        if (foundParent != NULL) {
+            // Parent found in the subtree
+            return foundParent;
+        }
+        
+        childIndex++; // Move to the next child pointer
+    }
+
+    // If the function reaches here, no parent was found in the current path
+    return NULL;
 }
 
 void BPlusTree::deleteKey(int x) {
@@ -805,7 +825,6 @@ void BPlusTree::deleteKey(int x) {
 
     cout << "Deleted key Successfully" << endl;
 }
-
 
 void BPlusTree::deleteInternal(int x, Node* curNode, Node* child) {
     if (curNode == root && curNode->size == 1) {
