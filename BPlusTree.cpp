@@ -27,153 +27,112 @@ Node::Node()
 
 BPlusTree::BPlusTree(){};
 
-void BPlusTree::insertKey(int x, unsigned char *record)
-{
-  // empty tree
-  if (root == NULL)
-  {
+void BPlusTree::insertKey(int x, unsigned char *record) {
+  if (root == nullptr) {
     root = createNewLeafNode(x, record);
     cout << "Root created:  " << x << endl;
-    this->nodes++;
-    this->levels++;
-    this->numKeys++;
+    ++nodes;
+    ++levels;
+    ++numKeys;
     return;
   }
-  // root exists, traverse the tree
-  Node *parent = traverseToLeafNode(x)[0];
-  Node *curNode = traverseToLeafNode(x)[1];
+
+  Node* parent = traverseToLeafNode(x)[0];
+  Node* curNode = traverseToLeafNode(x)[1];
   int insertIndex = 0;
-  while (x > curNode->key[insertIndex] && insertIndex < curNode->size)
-  {
-    insertIndex++;
+
+  while (insertIndex < curNode->size && x > curNode->key[insertIndex]) {
+    ++insertIndex;
   }
-  // account for duplicate keys
-  if (x == curNode->key[insertIndex])
-  {
-    Node *curBuffer = curNode->ptr[insertIndex];
-    // curBuffer should never be null in the first iteration
-    while (curBuffer->ptr[0] != NULL)
-    {
+
+  if (insertIndex < curNode->size && x == curNode->key[insertIndex]) {
+    Node* curBuffer = curNode->ptr[insertIndex];
+    while (curBuffer->ptr[0] != nullptr) {
       curBuffer = curBuffer->ptr[0];
     }
-
-    // there is remaining space in the buffer
-    if (curBuffer->size < N)
-    {
+    if (curBuffer->size < N) {
       curBuffer->records[curBuffer->size++] = record;
-    }
-    else
-    {
-      // current buffer is full
-      // create new buffer to store the record
-      // although each buffer node can store up to N+1 buffer nodes
-      // for simplicity sake
-      // each buffer node only points to 1 other buffer node like a linked list
-      Node *newBuffer = createNewBufferNode(x, record);
+    } else {
+      Node* newBuffer = createNewBufferNode(x, record);
       curBuffer->ptr[0] = newBuffer;
     }
-    // cout << "Inserted duplicate key" << x << "into buffer" << endl;
   }
-  // sufficient space at leafnode
-  else if (curNode->size < N)
-  {
-    this->numKeys++;
-    // make space for new key
-    for (int i = curNode->size; i > insertIndex; i--)
-    {
+  else if (curNode->size < N) {
+    ++numKeys;
+    for (int i = curNode->size; i > insertIndex; --i) {
       curNode->key[i] = curNode->key[i - 1];
       curNode->ptr[i] = curNode->ptr[i - 1];
     }
     curNode->key[insertIndex] = x;
-    curNode->size++;
-    // create buffer for the new key
-    Node *newBuffer = createNewBufferNode(x, record);
-    curNode->ptr[insertIndex] = newBuffer;
+    curNode->ptr[insertIndex] = createNewBufferNode(x, record);
+    ++curNode->size;
     cout << "Inserted " << x << endl;
   }
-  // create a new leaf node if it is already at the max
-  else
-  {
-    this->nodes++;
-    this->numKeys++;
-    // create new leaf node
-    Node *newLeaf = new Node;
-
-    // tempNode and buffers will store the new sequence of records of size N+1
-    // this will be later used to update the curNode and newLeaf accordingly
-    int tempNode[N + 1];
-    Node *buffers[N + 1];
-
-    int insert_index = 0;
-    while (x > curNode->key[insert_index] && insert_index < curNode->size)
-    {
-      insert_index++;
-    }
-
-    for (int i = 0; i <= N; i++)
-    {
-      if (i < insert_index)
-      {
-        tempNode[i] = curNode->key[i];
-        buffers[i] = curNode->ptr[i];
-      }
-      else if (i == insert_index)
-      {
-        tempNode[i] = x;
-        // create buffer for the new key
-        buffers[i] = createNewBufferNode(x, record);
-      }
-      else
-      {
-        tempNode[i] = curNode->key[i - 1];
-        buffers[i] = curNode->ptr[i - 1];
-      }
-    }
-
-    // rearrange pointers
-    Node *temp = curNode->ptr[N];
-    curNode->ptr[N] = newLeaf;
-    newLeaf->ptr[N] = temp;
-
-    newLeaf->IS_LEAF = true;
-    newLeaf->size = (N + 1) / 2;
-    curNode->size = (N + 1) - newLeaf->size;
-
-    // update curNode and add to newLeaf
-    for (int i = 0; i < curNode->size; i++)
-    {
-      curNode->key[i] = tempNode[i];
-      curNode->ptr[i] = buffers[i];
-      if (i < newLeaf->size)
-      {
-        newLeaf->key[i] = tempNode[i + curNode->size];
-        newLeaf->ptr[i] = buffers[i + curNode->size];
-      }
-    }
-    // tree only has one node (root node)
-    if (curNode == root)
-    {
-      this->levels++;
-      Node *newRootNode = new Node();
-      newRootNode->key[0] = newLeaf->key[0];
-      newRootNode->ptr[0] = curNode;
-      newRootNode->ptr[1] = newLeaf;
-      newRootNode->IS_LEAF = false;
-      newRootNode->size = 1;
-      root = newRootNode;
-    }
-    else
-    {
-      // insert new key into parent node
-      insertInternal(newLeaf->key[0], parent, newLeaf);
-    }
+  else {
+    ++nodes;
+    ++numKeys;
+    splitLeafNode(curNode, x, record, parent);
     cout << "Inserted " << x << endl;
   }
 }
 
+void BPlusTree::splitLeafNode(Node* curNode, int x, unsigned char* record, Node* parent) {
+  Node* newLeaf = new Node;
+  int tempKeys[N + 1];
+  Node* tempPtrs[N + 1];
+
+  int insertIndex = 0;
+  while (insertIndex < curNode->size && x > curNode->key[insertIndex]) {
+    ++insertIndex;
+  }
+  for (int i = 0; i <= N; ++i) {
+    if (i < insertIndex) {
+      tempKeys[i] = curNode->key[i];
+      tempPtrs[i] = curNode->ptr[i];
+    } else if (i == insertIndex) {
+      tempKeys[i] = x;
+      tempPtrs[i] = createNewBufferNode(x, record);
+    } else {
+      tempKeys[i] = curNode->key[i - 1];
+      tempPtrs[i] = curNode->ptr[i - 1];
+    }
+  }
+  curNode->size = (N + 1) / 2;
+  newLeaf->size = (N + 1) - curNode->size;
+  for (int i = 0; i < curNode->size; ++i) {
+    curNode->key[i] = tempKeys[i];
+    curNode->ptr[i] = tempPtrs[i];
+  }
+  for (int i = 0; i < newLeaf->size; ++i) {
+    newLeaf->key[i] = tempKeys[i + curNode->size];
+    newLeaf->ptr[i] = tempPtrs[i + curNode->size];
+  }
+
+  newLeaf->ptr[N] = curNode->ptr[N];
+  curNode->ptr[N] = newLeaf;
+  newLeaf->IS_LEAF = true;
+
+  if (curNode == root) {
+    createNewRoot(curNode, newLeaf);
+  } else {
+    insertInternal(newLeaf->key[0], parent, newLeaf);
+  }
+}
+
+void BPlusTree::createNewRoot(Node* leftChild, Node* rightChild) {
+  Node* newRoot = new Node();
+
+  newRoot->key[0] = rightChild->key[0];
+  newRoot->ptr[0] = leftChild;
+  newRoot->ptr[1] = rightChild;
+  newRoot->IS_LEAF = false;
+  newRoot->size = 1;
+  root = newRoot;
+  ++levels;
+}
+
 void BPlusTree::insertInternal(int x, Node *parent, Node *child)
 {
-  // parent is not full
   if (parent->size < N)
   {
     int insertIndex = 0;
@@ -181,7 +140,6 @@ void BPlusTree::insertInternal(int x, Node *parent, Node *child)
     {
       insertIndex++;
     }
-    // make space for new key
     for (int i = parent->size; i > insertIndex; i--)
     {
       std::memcpy(parent->key + i, parent->key + i - 1, sizeof(int));
@@ -190,16 +148,13 @@ void BPlusTree::insertInternal(int x, Node *parent, Node *child)
     parent->key[insertIndex] = x;
     parent->ptr[insertIndex + 1] = child;
     parent->size++;
-    // std::cout << "Inserted key into internal node successfully" << endl;
   }
   else
   {
-    // create new internal node
     this->nodes++;
     Node *newInternalNode = new Node();
     int tempKey[N + 1];
     Node *tempPtr[N + 2];
-    // store original in temp
     std::memcpy(tempKey, parent->key, N * sizeof(int));
     std::memcpy(tempPtr, parent->ptr, (N + 1) * sizeof(Node *));
     tempPtr[N] = parent->ptr[N];
@@ -208,8 +163,6 @@ void BPlusTree::insertInternal(int x, Node *parent, Node *child)
     {
       insertIndex++;
     }
-
-    // make space for new key
     for (int i = N; i > insertIndex; i--)
     {
       std::memcpy(tempKey + i, tempKey + i - 1, sizeof(int));
@@ -223,12 +176,10 @@ void BPlusTree::insertInternal(int x, Node *parent, Node *child)
     newInternalNode->IS_LEAF = false;
     parent->size = (N + 1) / 2;
     newInternalNode->size = N - parent->size;
-    // fill up the new internal node
     std::memcpy(newInternalNode->key, tempKey + parent->size + 1, newInternalNode->size * sizeof(int));
     std::memcpy(newInternalNode->ptr, tempPtr + parent->size + 1, (newInternalNode->size + 1) * sizeof(Node *));
     if (parent == root)
     {
-      // create a new root node
       this->nodes++;
       this->levels++;
       Node *newRootNode = new Node();
@@ -238,7 +189,6 @@ void BPlusTree::insertInternal(int x, Node *parent, Node *child)
       newRootNode->IS_LEAF = false;
       newRootNode->size = 1;
       root = newRootNode;
-      // std::cout << "Inserted new root node successfully" << endl;
     }
     else
     {
@@ -484,35 +434,40 @@ void BPlusTree::experiment4(int minVotes, int maxVotes)
 }
 
 // experiment 3 and 4 and re-formatted search functions
-void BPlusTree::search(int x)
-{
-  if (root != NULL)
-  {
-    Node *curNode = traverseToLeafNode(x)[1];
-    for (int i = 0; i < curNode->size; i++)
-    {
-      if (curNode->key[i] == x)
-      {
-        cout << "Found" << endl;
-
-        // cross check count of a particular key
-        int count = 0;
-        Node *buffer = curNode->ptr[i];
-        while (true)
-        {
-          count += buffer->size;
-          if (buffer->size == N)
-            buffer = buffer->ptr[0];
-          else
-            break;
-        }
-        cout << count << endl;
-        return;
-      }
-    }
+void BPlusTree::search(int x) {
+  // Check for non-empty tree
+  if (root == nullptr) {
+    cout << "Not found\n";
+    return;
   }
+
+  // Traverse to the potential leaf node containing x
+  Node* curNode = traverseToLeafNode(x)[1];
+  
+  // Iterate over keys in the current node
+  for (int i = 0; i < curNode->size; ++i) {
+    if (curNode->key[i] != x) continue;  // Skip non-matching keys
+    
+    cout << "Found\n";
+
+    // Initialize count and set buffer to the specific child node
+    int count = 0;
+    Node* buffer = curNode->ptr[i];
+
+    // Loop to aggregate counts, breaking when a non-full node is encountered
+    do {
+      count += buffer->size;
+      buffer = (buffer->size == N) ? buffer->ptr[0] : nullptr;
+    } while (buffer != nullptr);
+
+    cout << count << endl;
+    return;  // Exit after processing the found key
+  }
+
+  // Key not found in the tree
   cout << "Not found\n";
 }
+
 void BPlusTree::experiment2()
 {
   cout << "Experiment 2" << endl;
@@ -531,7 +486,6 @@ void BPlusTree::experiment2()
 }
 void BPlusTree::experiment5(int numVotesToDelete)
 {
-  search(numVotesToDelete);
   int bruteForceBlocksAccessed = 0;
   int totalCount = 0; // To count the number of records with numVotesToDelete
   auto bfStart = std::chrono::high_resolution_clock::now();
@@ -563,7 +517,6 @@ void BPlusTree::experiment5(int numVotesToDelete)
   auto bfEnd = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> bfDuration = bfEnd - bfStart;
   bfDuration = bfDuration * 1000;
-  // Display brute-force method statistics
   std::cout << "Brute-force scan accessed " << bruteForceBlocksAccessed << " blocks." << std::endl;
   std::cout << "Found " << totalCount << " records with numVotes equal to " << numVotesToDelete << std::endl;
   std::cout << "Brute-force scan running time: " << bfDuration.count() << " milliseconds." << std::endl;
@@ -579,7 +532,6 @@ void BPlusTree::experiment5(int numVotesToDelete)
   int numberOfNodes = this->nodes;   // Total number of nodes after deletion
   int numberOfLevels = this->levels; // Total number of levels after deletion
   std::vector<int> rootKeys;         // Keys of the root node after deletion
-  search(numVotesToDelete);
   if (root != NULL)
   {
     for (int i = 0; i < root->size; i++)
@@ -588,7 +540,6 @@ void BPlusTree::experiment5(int numVotesToDelete)
     }
   }
 
-  // Display the statistics
   std::cout << "Experiment 5 Statistics:" << std::endl;
   std::cout << "Number of nodes in the B+ tree: " << numberOfNodes << std::endl;
   std::cout << "Number of levels in the B+ tree: " << numberOfLevels << std::endl;
@@ -599,45 +550,6 @@ void BPlusTree::experiment5(int numVotesToDelete)
   }
   std::cout << std::endl;
   std::cout << "Running time of the deletion process: " << duration.count() << " millieconds." << std::endl;
-}
-
-void BPlusTree::display()
-{
-  // level order traversal
-  if (root == NULL)
-    return;
-  queue<Node *> q;
-  q.push(root);
-  int currentLevelNodes = 1;
-  int nextLevelNodes = 0;
-
-  while (!q.empty())
-  {
-    Node *node = q.front();
-    q.pop();
-    currentLevelNodes--;
-
-    for (int i = 0; i < node->size; i++)
-    {
-      cout << node->key[i] << " ";
-    }
-    cout << ",";
-    if (!node->IS_LEAF)
-    {
-      for (int i = 0; i < node->size + 1; i++)
-      {
-        q.push(node->ptr[i]);
-        nextLevelNodes++;
-      }
-    }
-
-    if (currentLevelNodes == 0)
-    {
-      cout << endl; // print a new line for every layer
-      currentLevelNodes = nextLevelNodes;
-      nextLevelNodes = 0;
-    }
-  }
 }
 
 Node* BPlusTree::createNewLeafNode(int key, unsigned char* data) {

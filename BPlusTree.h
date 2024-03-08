@@ -31,9 +31,10 @@ class BPlusTree {
     int levels = 0;
     int numKeys = 0;
     int deleteCounter = 0; // Keep track of deleted numVotes = 1000
-    
     void insertInternal(int x, Node *parent, Node *child);
     void deleteInternal(int x, Node *curNode, Node *child);
+    void splitLeafNode(Node* curNode, int x, unsigned char* record, Node* parent);
+    void createNewRoot(Node* leftChild, Node* rightChild);
     Node *findParent(Node* currentNode, Node* targetChild);
     Node* createNewLeafNode(int key, unsigned char *data);
     Node* createNewBufferNode(int key, unsigned char *data);
@@ -45,7 +46,6 @@ public:
     void search(int x);
     void insertKey(int x,unsigned char *record);
     void deleteKey(int x);
-    void display();
     void experiment2();
     void experiment5(int numVotesToDelete);
     void experiment3(int numVotes);
