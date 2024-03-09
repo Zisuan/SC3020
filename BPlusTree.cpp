@@ -421,7 +421,6 @@ void BPlusTree::experiment4(int minVotes, int maxVotes)
   std::cout << "Running time of the brute-force scan process: " << bruteDuration.count() << " milliseconds.\n";
 }
 
-// experiment 3 and 4 and re-formatted search functions
 void BPlusTree::search(int x) {
   // Check for non-empty tree
   if (root == nullptr) {
@@ -438,7 +437,6 @@ void BPlusTree::search(int x) {
     
     cout << "Found\n";
 
-    // Initialize count and set buffer to the specific child node
     int count = 0;
     Node* buffer = curNode->ptr[i];
 
@@ -449,9 +447,8 @@ void BPlusTree::search(int x) {
     } while (buffer != nullptr);
 
     cout << count << endl;
-    return;  // Exit after processing the found key
+    return;  // Exit after finding key
   }
-
   // Key not found in the tree
   cout << "Not found\n";
 }
@@ -536,9 +533,9 @@ void BPlusTree::experiment5(int numVotesToDelete)
 }
 
 Node* BPlusTree::createNewLeafNode(int key, unsigned char* data) {
-    Node* leafNode = new Node(); // Ensure Node's constructor initializes arrays dynamically based on N.
+    Node* leafNode = new Node();
     if (!leafNode) {
-        // Handle allocation failure if applicable in your environment. Typically, new throws, so this is more illustrative.
+        // Handle allocation failure
         std::cerr << "Memory allocation for new leaf node failed." << std::endl;
         return nullptr;
     }
@@ -553,9 +550,9 @@ Node* BPlusTree::createNewLeafNode(int key, unsigned char* data) {
 }
 
 Node* BPlusTree::createNewBufferNode(int key, unsigned char* data) {
-    Node* bufferNode = new Node(); // Assume Node's constructor handles array initialization.
+    Node* bufferNode = new Node();
     if (!bufferNode) {
-        // Similar illustrative error handling for memory allocation failure.
+        // Handle allocation failure
         std::cerr << "Memory allocation for new buffer node failed." << std::endl;
         return nullptr;
     }
@@ -568,22 +565,21 @@ Node* BPlusTree::createNewBufferNode(int key, unsigned char* data) {
     return bufferNode;
 }
 
-// returns [Node* parentOfLeafNode, Node *leafNode]
 Node **BPlusTree::traverseToLeafNode(int targetKey) {
-    Node **path = new Node *[2]; // Array to hold the parent and child nodes on the path to the targetKey
-    path[1] = root; // Start with the root as the current node (child in the context of the first iteration)
+    Node **path = new Node *[2]; // Array for the parent & child node
+    path[1] = root; // Start with the root
 
     // Traverse down to the leaf node
     while (!path[1]->IS_LEAF) {
-        path[0] = path[1]; // Update the parent node
-        bool foundLesserKey = false; // Flag to check if a lesser key is found
+        path[0] = path[1]; // Update parent
+        bool foundLesserKey = false; // Flag if a lesser key is found
 
         // Search for the first key greater than targetKey
         for (int i = 0; i < path[1]->size; i++) {
             if (targetKey < path[1]->key[i]) {
-                path[1] = path[1]->ptr[i]; // Move to the appropriate child node
+                path[1] = path[1]->ptr[i]; // Move to child node
                 foundLesserKey = true;
-                break; // Exit the loop as the correct child node is found
+                break; // Exit the loop aft child node is found
             }
         }
 
@@ -592,34 +588,29 @@ Node **BPlusTree::traverseToLeafNode(int targetKey) {
             path[1] = path[1]->ptr[path[1]->size];
         }
     }
-    // At this point, path[1] is the leaf node where targetKey should be located, and path[0] is its parent
     return path;
 }
 
 Node* BPlusTree::findParent(Node* currentNode, Node* targetChild) {
-    // Base condition to stop if currentNode is a leaf or its children are leaves
+    // stop if currentNode = leaf or child = leaf
     if (currentNode->IS_LEAF || (currentNode->ptr[0]->IS_LEAF)) {
         return NULL;
     }
 
-    int childIndex = 0; // Initialize index to iterate through child pointers
+    int childIndex = 0; 
     while (childIndex < currentNode->size + 1) {
         if (currentNode->ptr[childIndex] == targetChild) {
-            // If the direct child is the target, currentNode is the parent
             return currentNode;
         }
 
-        // If not directly found, search recursively in the subtree
+        // when not found, recursively search in subtree
         Node* foundParent = findParent(currentNode->ptr[childIndex], targetChild);
         if (foundParent != NULL) {
-            // Parent found in the subtree
             return foundParent;
         }
         
-        childIndex++; // Move to the next child pointer
+        childIndex++; // next child pointer
     }
-
-    // If the function reaches here, no parent was found in the current path
     return NULL;
 }
 
@@ -737,7 +728,6 @@ void BPlusTree::deleteInternal(int x, Node* curNode, Node* child) {
         }
     }
 
-    // Shift keys and pointers left to delete the key and its right child pointer
     for (int i = index; i < curNode->size - 1; i++) {
         curNode->key[i] = curNode->key[i + 1];
         curNode->ptr[i + 1] = curNode->ptr[i + 2];
@@ -788,7 +778,7 @@ void BPlusTree::deleteInternal(int x, Node* curNode, Node* child) {
                     leftSibling->ptr[i] = curNode->ptr[j];
                 }
                 leftSibling->size += curNode->size + 1;
-                // Adjust parent
+                // Adjust
                 for (int i = leftPtrIndex; i < parent->size - 1; i++) {
                     parent->key[i] = parent->key[i + 1];
                     parent->ptr[i + 1] = parent->ptr[i + 2];
@@ -803,7 +793,7 @@ void BPlusTree::deleteInternal(int x, Node* curNode, Node* child) {
                     curNode->ptr[i] = rightSibling->ptr[j];
                 }
                 curNode->size += rightSibling->size + 1;
-                // Adjust parent
+                // Adjust
                 for (int i = rightPtrIndex - 1; i < parent->size - 1; i++) {
                     parent->key[i] = parent->key[i + 1];
                     parent->ptr[i + 1] = parent->ptr[i + 2];
@@ -811,7 +801,6 @@ void BPlusTree::deleteInternal(int x, Node* curNode, Node* child) {
                 parent->size--;
                 deallocate(rightSibling);
             }
-            // If parent is now underflowed and not the root, recurse
             if (parent->size < N / 2 && parent != root) {
                 Node* grandparent = findParent(root, parent);
                 deleteInternal(parent->key[0], grandparent, parent);
