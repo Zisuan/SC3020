@@ -459,7 +459,6 @@ void BPlusTree::search(int x) {
 void BPlusTree::experiment2()
 {
   cout << "Experiment 2" << endl;
-  // cout << "Number of Unique Key Values: " << this->numKeys << endl;
   cout << "Parameter N: " << N << endl;
   cout << "Number of Nodes: " << this->nodes << endl;
   cout << "Number of Levels: " << this->levels << endl;
@@ -472,6 +471,7 @@ void BPlusTree::experiment2()
     }
   }
 }
+
 void BPlusTree::experiment5(int numVotesToDelete)
 {
   int bruteForceBlocksAccessed = 0;
@@ -704,7 +704,7 @@ void BPlusTree::deleteKey(int x) {
                 }
                 leftSibling->size += curNode->size;
                 deleteInternal(parent->key[leftPtrIndex], parent, curNode);
-                deallocate(curNode); // Assuming deallocate properly frees the node
+                deallocate(curNode);
             } else if (rightSibling) {
                 // Merge curNode into rightSibling
                 for (int i = curNode->size, j = 0; j < rightSibling->size; i++, j++) {
@@ -713,7 +713,7 @@ void BPlusTree::deleteKey(int x) {
                 }
                 curNode->size += rightSibling->size;
                 deleteInternal(parent->key[rightPtrIndex], parent, rightSibling);
-                deallocate(rightSibling); // Assuming deallocate properly frees the node
+                deallocate(rightSibling);
             }
         }
     }
@@ -814,13 +814,13 @@ void BPlusTree::deleteInternal(int x, Node* curNode, Node* child) {
             // If parent is now underflowed and not the root, recurse
             if (parent->size < N / 2 && parent != root) {
                 Node* grandparent = findParent(root, parent);
-                deleteInternal(parent->key[0], grandparent, parent); // Use the first key as an example; adjust based on your deletion policy
+                deleteInternal(parent->key[0], grandparent, parent);
             }
         }
     }
 }
 
-// helper functions
+// deletion helper function
 void BPlusTree::deallocate(Node *node)
 {
   delete[] node->key;
