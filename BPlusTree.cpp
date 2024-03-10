@@ -195,7 +195,7 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
 
   auto targetedSearchStart = std::chrono::high_resolution_clock::now();
 
-  // The traversal part is hypothetical and needs to be replaced with your actual traversal logic
+  
   Node *current = root;
   while (current != nullptr && !current->IS_LEAF)
   {
@@ -225,11 +225,11 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
               matchingRecordsCount++;
             }
           }
-          bufferNode = bufferNode->ptr[0]; // Assuming this is how you traverse buffer nodes
+          bufferNode = bufferNode->ptr[0]; 
         }
       }
     }
-    current = current->ptr[N]; // Move to the next leaf node. Adjust this access according to your implementation
+    current = current->ptr[N]; // Move to the next leaf node. 
   }
 
   auto targetedSearchEnd = std::chrono::high_resolution_clock::now();
