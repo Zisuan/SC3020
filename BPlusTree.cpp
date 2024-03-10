@@ -263,7 +263,6 @@ void BPlusTree::experiment3(int numVotesToRetrieve)
         for (int j = 0; j < bufferNode->size; j++)
         {
           Record *record = reinterpret_cast<Record *>(bufferNode->records[j]);
-          // Count this as accessing a data block, since we're inspecting the record
           bruteForceRecordsAccessed++; // Correctly count each inspected record
           if (record->numVotes == numVotesToRetrieve)
           {
@@ -335,7 +334,6 @@ void BPlusTree::experiment4(int minVotes, int maxVotes)
     {
       if (current->key[i] >= minVotes && current->key[i] <= maxVotes)
       {
-        // Assuming the record structure is available here
         // For each relevant record, accumulate ratings and count
         Node *bufferNode = current->ptr[i];
         while (bufferNode != nullptr)

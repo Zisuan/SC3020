@@ -39,7 +39,7 @@ public:
     size_t size() const;
 };
 
-class BPlusTree;//forward declare
+class BPlusTree; // forward declare
 // SimulatedDisk class
 class SimulatedDisk
 {
@@ -55,9 +55,8 @@ public:
     size_t totalBlocks() const;
     size_t totalRecords() const;
     size_t usedCapacity() const;
-    void loadBPlusTree(BPlusTree& tree); 
+    void loadBPlusTree(BPlusTree &tree);
 };
-
 
 // Function to read TSV and create blocks
 void readTSVAndCreateBlocks(const std::string &filename, SimulatedDisk &disk);
